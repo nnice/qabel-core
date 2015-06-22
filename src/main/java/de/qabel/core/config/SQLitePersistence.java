@@ -1,9 +1,7 @@
 package de.qabel.core.config;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.bouncycastle.crypto.InvalidCipherTextException;
-import org.bouncycastle.crypto.params.KeyParameter;
+import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.crypto.params.KeyParameter;
 
 import java.io.*;
 import java.sql.*;
@@ -14,7 +12,6 @@ import java.util.List;
  * Stores entities in a local SQLite database
  */
 public class SQLitePersistence extends Persistence<String> {
-	private final static Logger logger = LogManager.getLogger(SQLitePersistence.class.getName());
 	private final static String STR_MASTER_KEY = "MASTERKEY";
 	private final static String STR_MASTER_KEY_NONCE = "MASTERKEYNONCE";
 	private final static String STR_SALT = "SALT";
@@ -39,10 +36,8 @@ public class SQLitePersistence extends Persistence<String> {
 			c = DriverManager.getConnection(JDBC_PREFIX + database);
 			createTables();
 		} catch (SQLException e) {
-			logger.fatal("Cannot connect to SQLite DB!", e);
 			return false;
 		} catch (ClassNotFoundException e) {
-			logger.fatal("Cannot load JDBC class!", e);
 			return false;
 		}
 		return true;
@@ -77,7 +72,6 @@ public class SQLitePersistence extends Persistence<String> {
 			try {
 				masterKey = cryptoutils.decrypt(encryptionKey, masterKeyNonce, getConfigValue(STR_MASTER_KEY), null);
 			} catch (InvalidCipherTextException e) {
-				logger.error("Cannot decrypt master key!", e);
 			}
 		}
 
@@ -86,17 +80,14 @@ public class SQLitePersistence extends Persistence<String> {
 			masterKeyNonce = cryptoutils.getRandomBytes(NONCE_SIZE_BYTE);
 
 			if (!setConfigValue(STR_MASTER_KEY_NONCE, masterKeyNonce)) {
-				logger.error("Cannot insert master key nonce into database!");
 				return null;
 			}
 
 			try {
 				if (!setConfigValue(STR_MASTER_KEY, cryptoutils.encrypt(encryptionKey, masterKeyNonce, masterKey, null))) {
-					logger.error("Cannot insert master key into database!");
 					return null;
 				}
 			} catch (InvalidCipherTextException e) {
-				logger.error("Cannot encrypt master key!", e);
 				return null;
 			}
 		}
@@ -110,7 +101,6 @@ public class SQLitePersistence extends Persistence<String> {
 		}
 		KeyParameter oldMasterKey = getMasterKey(oldKey);
 		if (oldMasterKey == null) {
-			logger.error("Cannot decrypt master key. Wrong password?");
 			return false;
 		}
 		boolean success = false;
@@ -125,11 +115,9 @@ public class SQLitePersistence extends Persistence<String> {
 			setConfigValue(STR_MASTER_KEY, cryptoutils.encrypt(newKey, masterKeyNonce, oldMasterKey.getKey(), null));
 
 		} catch (SQLException | InvalidCipherTextException e) {
-			logger.error("Cannot re-encrypt master key!", e);
 			try {
 				c.rollback();
 			} catch (SQLException e1) {
-				logger.error("Cannot rollback changes!", e1);
 			}
 		} finally {
 			try {
@@ -137,7 +125,6 @@ public class SQLitePersistence extends Persistence<String> {
 				c.setAutoCommit(true);
 				success = true;
 			} catch (SQLException e) {
-				logger.error("Cannot apply changes!", e);
 			}
 		}
 		return success;
@@ -150,7 +137,6 @@ public class SQLitePersistence extends Persistence<String> {
 		try (Statement statement = c.createStatement()){
 			statement.executeUpdate(sql);
 		} catch (SQLException e) {
-			logger.error("Cannot create CONFIG table!", e);
 		}
 	}
 
@@ -171,7 +157,6 @@ public class SQLitePersistence extends Persistence<String> {
 				}
 			}
 		} catch (SQLException e) {
-			logger.info("Cannot select " + name + " from CONFIG database!", e);
 		}
 		return value;
 	}
@@ -190,7 +175,6 @@ public class SQLitePersistence extends Persistence<String> {
 			statement.setBytes(2, data);
 			statement.executeUpdate();
 		} catch (SQLException e) {
-			logger.info("Cannot insert " + name + " into CONFIG database!", e);
 			return false;
 		}
 		return true;
@@ -208,7 +192,6 @@ public class SQLitePersistence extends Persistence<String> {
 			statement.setString(1, name);
 			statement.executeUpdate();
 		} catch (SQLException e) {
-			logger.info("Cannot delete " + name + " from CONFIG database!", e);
 			return false;
 		}
 		return true;
@@ -231,7 +214,6 @@ public class SQLitePersistence extends Persistence<String> {
 				nonce = rs.getBytes("NONCE");
 			}
 		} catch (SQLException e) {
-			logger.error("Cannot get nonce!", e);
 		}
 		return nonce;
 	}
@@ -249,7 +231,6 @@ public class SQLitePersistence extends Persistence<String> {
 		try (Statement statement = c.createStatement()){
 			statement.executeUpdate(sql);
 		} catch (SQLException e) {
-			logger.error("Cannot create table!", e);
 		}
 
 		sql = "INSERT INTO " +
@@ -262,7 +243,6 @@ public class SQLitePersistence extends Persistence<String> {
 			statement.setBytes(3, serialize(object.getPersistenceID(), object, nonce));
 			statement.executeUpdate();
 		} catch (SQLException | IllegalArgumentException e) {
-			logger.error("Cannot persist or already persisted entity!", e);
 			throw new IllegalArgumentException("Cannot persist or already persisted entity!");
 		}
 		return true;
@@ -283,7 +263,6 @@ public class SQLitePersistence extends Persistence<String> {
 			statement.setString(2, object.getPersistenceID());
 			statement.executeUpdate();
 		} catch (SQLException e) {
-			logger.error("Cannot update entity!", e);
 			return false;
 		}
 		return true;
@@ -314,7 +293,6 @@ public class SQLitePersistence extends Persistence<String> {
 			statement.setString(1, id);
 			statement.executeUpdate();
 		} catch (SQLException e) {
-			logger.error("Cannot remove entity!", e);
 			return false;
 		}
 		return true;
@@ -338,7 +316,6 @@ public class SQLitePersistence extends Persistence<String> {
 				object = (Persistable) deserialize(id, rs.getBytes("BLOB"), rs.getBytes("NONCE"));
 			}
 		} catch (SQLException | IllegalArgumentException e) {
-			logger.error("Cannot get entity!", e);
 		}
 		return object;
 	}
@@ -358,7 +335,6 @@ public class SQLitePersistence extends Persistence<String> {
 				}
 			}
 		} catch (SQLException | IllegalArgumentException e) {
-			logger.error("Cannot get entities!", e);
 		}
 		return objects;
 	}
@@ -373,7 +349,6 @@ public class SQLitePersistence extends Persistence<String> {
 		try (Statement statement = c.createStatement()){
 			statement.execute(sql);
 		} catch (SQLException e) {
-			logger.error("Cannot drop table!" + e);
 			return false;
 		}
 		return true;

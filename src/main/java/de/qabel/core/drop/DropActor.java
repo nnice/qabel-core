@@ -19,8 +19,6 @@ import de.qabel.core.exceptions.QblSpoofedSenderException;
 import de.qabel.core.exceptions.QblVersionMismatchException;
 import de.qabel.core.http.DropHTTP;
 import de.qabel.core.http.HTTPResult;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * DropActor is registered to Contact, Identity and DropServer added and removed events. On instantiation all Contacts,
@@ -28,7 +26,6 @@ import org.apache.logging.log4j.Logger;
  * event listeners allows the DropActor to receive and store changes to these resources.
  */
 public class DropActor extends EventActor implements de.qabel.ackack.event.EventListener {
-	private final static Logger logger = LogManager.getLogger(DropActor.class.getName());
 
 	public static final String EVENT_DROP_MESSAGE_RECEIVED_PREFIX = "dropMessageReceived";
 	private static final String EVENT_ACTION_DROP_MESSAGE_SEND = "sendDropMessage";
@@ -300,17 +297,14 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 					try {
 						binMessage = new BinaryDropMessageV0(cipherMessage);
 					} catch (QblVersionMismatchException e) {
-						logger.error("Version mismatch in binary drop message", e);
 						throw new RuntimeException("Version mismatch should not happen", e);
 					} catch (QblDropInvalidMessageSizeException e) {
-						logger.info("Binary drop message version 0 with unexpected size discarded.");
 						// Invalid message uploads may happen with malicious intent
 						// or by broken clients. Skip.
 						continue;
 					}
 					break;
 				default:
-					logger.warn("Unknown binary drop message version " + binaryFormatVersion);
 					// cannot handle this message -> skip
 					continue;
 			}
@@ -345,7 +339,6 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 				try {
 					send((DropMessage<?>) data[0], (Collection) data[1]);
 				} catch (QblDropPayloadSizeException e) {
-					logger.warn("Failed to send message", e);
 				}
 				break;
 			case EventNameConstants.EVENT_CONTACT_ADDED:
@@ -379,7 +372,6 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 				}
 				break;
 			default:
-				logger.debug("Received unknown event: " + event);
 				break;
 		}
 	}

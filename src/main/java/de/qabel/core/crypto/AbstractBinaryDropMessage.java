@@ -4,8 +4,6 @@ import java.util.Arrays;
 
 import de.qabel.core.config.Identity;
 import de.qabel.core.exceptions.QblSpoofedSenderException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -23,8 +21,6 @@ import de.qabel.core.exceptions.QblVersionMismatchException;
  * Abstract drop message in a binary transport format.
  */
 public abstract class AbstractBinaryDropMessage {
-	private static final Logger logger = LogManager
-			.getLogger(AbstractBinaryDropMessage.class.getName());
 
 	private byte[] plainPayload;
 
@@ -46,8 +42,6 @@ public abstract class AbstractBinaryDropMessage {
 	public AbstractBinaryDropMessage(byte[] binaryMessage)
 			throws QblVersionMismatchException, QblDropInvalidMessageSizeException {
 		if (binaryMessage.length != getTotalSize()) {
-			logger.debug("Unexpected message size. Is: " + binaryMessage.length
-					+ " Should: " + getTotalSize());
 			throw new QblDropInvalidMessageSizeException();
 		}
 		if (binaryMessage[0] != getVersion()) {
@@ -80,7 +74,6 @@ public abstract class AbstractBinaryDropMessage {
 		try {
 			return gson.fromJson(plainJson, DropMessage.class);
 		} catch (JsonSyntaxException e) {
-			logger.debug("Deserialization failed due to invalid json syntax", e);
 			return null;
 		}
 	}
@@ -125,15 +118,10 @@ public abstract class AbstractBinaryDropMessage {
 		DropMessage<?> dropMessage = deserialize(new String(
 				discardPaddingBytes(decryptedPlaintext.getPlaintext())));
 		if (dropMessage == null) {
-			logger.debug("Message could not be deserialized. Msg: "
-					+ new String(decryptedPlaintext.getPlaintext()));
 			return null;
 		}
 
 		if (!dropMessage.getSenderKeyId().equals(decryptedPlaintext.getSenderKey().getReadableKeyIdentifier())){
-			logger.info("Spoofing of sender information detected."
-					+ " Expected: " + dropMessage.getSenderKeyId()
-					+ " Actual: " + decryptedPlaintext.getSenderKey().getReadableKeyIdentifier());
 			throw new QblSpoofedSenderException();
 		}
 

@@ -30,18 +30,17 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.logging.log4j.*;
-import org.bouncycastle.crypto.InvalidCipherTextException;
-import org.bouncycastle.crypto.engines.AESEngine;
-import org.bouncycastle.crypto.modes.GCMBlockCipher;
-import org.bouncycastle.crypto.params.AEADParameters;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.crypto.engines.AESEngine;
+import org.spongycastle.crypto.modes.GCMBlockCipher;
+import org.spongycastle.crypto.params.AEADParameters;
+import org.spongycastle.crypto.params.KeyParameter;
+import org.spongycastle.jce.provider.BouncyCastleProvider;
 
 public class CryptoUtils {
 
 	// https://github.com/Qabel/qabel-doc/wiki/Components-Crypto
-	private final static String CRYPTOGRAPHIC_PROVIDER = "BC"; // BouncyCastle
+	private final static String CRYPTOGRAPHIC_PROVIDER = "SC"; // BouncyCastle
 	private final static String SYMM_KEY_ALGORITHM = "AES";
 	private final static String SYMM_GCM_TRANSFORMATION = "AES/GCM/NoPadding";
 	private final static int SYMM_GCM_READ_SIZE_BYTE = 4096; // Should be multiple of 4096 byte due to flash block size.
@@ -60,8 +59,6 @@ public class CryptoUtils {
 	private static final int PADDING_LEN_BYTES = 4;
 	public static final int ASYM_KEY_SIZE_BYTE = 32;
 
-	private final static Logger logger = LogManager.getLogger(CryptoUtils.class
-			.getName());
 
 	private SecureRandom secRandom;
 	private Cipher gcmCipher;
@@ -81,13 +78,10 @@ public class CryptoUtils {
 					CRYPTOGRAPHIC_PROVIDER);
 			keyGenerator.init(AES_KEY_SIZE_BIT);
 		} catch (NoSuchAlgorithmException e) {
-			logger.error("Cannot find selected algorithm! " + e.getMessage());
 			throw new RuntimeException("Cannot find selected algorithm!", e);
 		} catch (NoSuchPaddingException e) {
-			logger.error("Cannot find selected padding! " + e.getMessage());
 			throw new RuntimeException("Cannot find selected padding!", e);
 		} catch (NoSuchProviderException e) {
-			logger.error("Cannot find selected provider! " + e.getMessage());
 			throw new RuntimeException("Cannot find selected provider!", e);
 		}
 	}
@@ -182,7 +176,6 @@ public class CryptoUtils {
 		try {
 			gcmCipher.init(Cipher.ENCRYPT_MODE, key, iv);
 		} catch (InvalidAlgorithmParameterException e) {
-			logger.debug("Encryption: Wrong parameters for file encryption cipher.", e);
 			return false;
 		}
 
@@ -195,12 +188,9 @@ public class CryptoUtils {
 			inputStream.close();
 		} catch (IllegalBlockSizeException e) {
 			// Should not happen
-			logger.debug("Encryption: Block size of cipher was illegal => code mistake.", e);
 		} catch (BadPaddingException e) {
 			// We do not use padding, so this should not be thrown
-			logger.error(e);
 		} catch (IOException e) {
-			logger.debug("Encryption: Input/output Stream cannot be written/read to/from.", e);
 			return false;
 		}
 		return true;
@@ -235,7 +225,6 @@ public class CryptoUtils {
 		try {
 			bufferedInput.read(nonce);
 		} catch (IOException e) {
-			logger.debug("Decryption: Ciphertext (in this case the nonce) can not be read.", e);
 			throw e;
 		}
 
@@ -256,7 +245,6 @@ public class CryptoUtils {
 				 */
 				byte[] encBytes = gcmCipher.update(temp, 0, readBytes);
 				if (encBytes == null) {
-					logger.error("Input too short for block cipher. Input length was " + readBytes);
 					throw new RuntimeException("Decryption failed due to unexpected input length.");
 				}
 				fileOutput.write(encBytes);
@@ -264,12 +252,10 @@ public class CryptoUtils {
 			try {
 				fileOutput.write(gcmCipher.doFinal());
 			} catch (IllegalBlockSizeException e) {
-				logger.debug("Decryption: File was encrypted with wrong block size.", e);
 				// truncate file to avoid leakage of incomplete or unauthenticated data
 				fileOutput.getChannel().truncate(0);
 				return false;
 			} catch (BadPaddingException e) {
-				logger.error("Decryption: Authentication tag is invalid!", e);
 				// truncate file to avoid leakage of incomplete or unauthenticated data
 				fileOutput.getChannel().truncate(0);
 				return false;
@@ -320,7 +306,6 @@ public class CryptoUtils {
 				bs.reset();
 			} catch (IOException e) {
 				// Should never occur
-				logger.error("Cannot write to ByteArrayOutputStream!", e);
 				return null;
 			}
 		}
@@ -406,11 +391,9 @@ public class CryptoUtils {
 			body.writeTo(noiseBox);
 		} catch (IOException e) {
 			// Should never occur
-			logger.error("Cannot write to ByteArrayOutputStream!", e);
 			throw new RuntimeException(e);
 		} catch (InvalidCipherTextException e) {
 			// Should never occur
-			logger.error("Unknown encryption error!", e);
 			throw new RuntimeException(e);
 		}
 		return noiseBox.toByteArray();
@@ -426,7 +409,7 @@ public class CryptoUtils {
 	 * 		plaintext which is the content of the received noise box
 	 * @throws java.security.InvalidKeyException
 	 * 		if kdf cannot distribute a key from DH of given EC keys
-	 * @throws org.bouncycastle.crypto.InvalidCipherTextException
+	 * @throws org.spongycastle.crypto.InvalidCipherTextException
 	 * 		on decryption errors
 	 */
 	public DecryptedPlaintext readBox(QblECKeyPair targetKey, byte[] noiseBox) throws InvalidKeyException, InvalidCipherTextException {
@@ -521,7 +504,7 @@ public class CryptoUtils {
 	 * @param plaintext plaintext to encrypt
 	 * @param associatedData additionally associated data
 	 * @return encrypted plaintext
-	 * @throws org.bouncycastle.crypto.InvalidCipherTextException on encryption errors
+	 * @throws org.spongycastle.crypto.InvalidCipherTextException on encryption errors
 	 */
 	public byte[] encrypt(KeyParameter key, byte[] nonce, byte[] plaintext, byte[] associatedData) throws InvalidCipherTextException {
 		AEADParameters params = new AEADParameters(key, MAC_BIT, nonce, associatedData);
@@ -541,7 +524,7 @@ public class CryptoUtils {
 	 * @param ciphertext ciphertext to encrypt
 	 * @param associatedData additionally associated data
 	 * @return encrypted ciphertext
-	 * @throws org.bouncycastle.crypto.InvalidCipherTextException on decryption errors
+	 * @throws org.spongycastle.crypto.InvalidCipherTextException on decryption errors
 	 */
 	public byte[] decrypt(KeyParameter key, byte[] nonce, byte[] ciphertext, byte[] associatedData) throws InvalidCipherTextException {
 		AEADParameters params = new AEADParameters(key, MAC_BIT, nonce, associatedData);

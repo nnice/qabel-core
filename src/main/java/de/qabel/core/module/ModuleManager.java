@@ -6,7 +6,6 @@ import de.qabel.core.config.ResourceActor;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.HashMap;
 
 /**
@@ -14,7 +13,7 @@ import java.util.HashMap;
  * stopping and removing them.
  */
 public class ModuleManager {
-	public final static ClassLoader LOADER = new ClassLoader();
+	public static ClassLoader LOADER;
 
 	private final EventEmitter eventEmitter;
 	private final ResourceActor resourceActor;
@@ -22,22 +21,11 @@ public class ModuleManager {
 	private HashMap<Module, ModuleThread> modules;
 
 
-	static public class ClassLoader extends URLClassLoader{
-		public ClassLoader() {
-			super(new URL[0]);
-		}
-
-		@Override
-		public void addURL(URL url) {
-			super.addURL(url);
-		}
-	}
-
-
-	public ModuleManager(EventEmitter emitter, ResourceActor resourceActor) {
+	public ModuleManager(EventEmitter emitter, ResourceActor resourceActor, ClassLoader classloader) {
 		eventEmitter = emitter;
 		modules = new HashMap<>();
 		this.resourceActor = resourceActor;
+		LOADER = classloader;
 	}
 
 	EventEmitter getEventEmitter() {
@@ -63,22 +51,6 @@ public class ModuleManager {
 		return m;
 	}
 
-	public void startModule(File jar, String className) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-		try {
-			ClassLoader cld = LOADER;
-			cld.addURL(jar.toURI().toURL());
-			Class cls = Class.forName(className, true, cld);
-			try {
-				startModule(cls.asSubclass(Module.class));
-			}
-			catch (ClassCastException e) {
-				throw new InstantiationError(className + " not a subclass of Module!");
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-	}
 
 	/**
 	 * Shuts down all Modules

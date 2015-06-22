@@ -8,8 +8,6 @@ import java.security.InvalidKeyException;
 
 import javax.crypto.SecretKey;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import de.qabel.core.config.StorageServer;
 import de.qabel.core.config.StorageVolume;
@@ -20,7 +18,6 @@ import de.qabel.core.http.HTTPResult;
 import de.qabel.core.http.StorageHTTP;
 
 public class StorageAction {
-	private final static Logger logger = LogManager.getLogger(StorageAction.class.getName());
 
 	/**
 	 * Creates a new storage volume on the given storage server.
@@ -37,10 +34,8 @@ public class StorageAction {
 		if (!result.isOk()) {
 			switch (result.getResponseCode()) {
 			case 503:
-				logger.info("Storage server reported capacity shortcoming.");
 				throw new IOException("Storage server overloaded.");
 			default:
-				logger.error("Volume creation failed with unexpected response " + result.getResponseCode());
 				throw new RuntimeException("Unexpected response from storage server");
 			}
 		}
@@ -63,13 +58,10 @@ public class StorageAction {
 		if (!result.isOk()) {
 			switch (result.getResponseCode()) {
 			case 400:
-				logger.error("Volume probing failed because of syntactically invalid request.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 404:
-				logger.debug("Volume probing negative.");
 				return false;
 			default:
-				logger.error("Volume probing failed with unexpected response " + result.getResponseCode());
 				throw new RuntimeException("Unexpected response from storage server");
 			}
 		}
@@ -92,19 +84,14 @@ public class StorageAction {
 		if (!result.isOk()) {
 			switch (result.getResponseCode()) {
 			case 400:
-				logger.error("Volume deletion failed because of syntactically invalid request.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 401:
-				logger.error("Volume deletion failed because of missing token.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 403:
-				logger.error("Volume deletion failed because of invalid token.");
 				throw new QblStorageInvalidToken();
 			case 404:
-				logger.debug("Volume deletion failed because of unknown volume.");
 				throw new RuntimeException("Unexpected response from storage server");
 			default:
-				logger.error("Volume deletion failed with unexpected response " + result.getResponseCode());
 				throw new RuntimeException("Unexpected response from storage server");
 			}
 		}
@@ -136,19 +123,14 @@ public class StorageAction {
 		if (!result.isOk()) {
 			switch (result.getResponseCode()) {
 			case 400:
-				logger.error("Blob upload failed because of syntactically invalid request url.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 401:
-				logger.error("Blob upload failed because of missing token.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 403:
-				logger.error("Blob upload failed because of invalid token.");
 				throw new QblStorageInvalidToken();
 			case 404:
-				logger.error("Blob upload failed because of unlocatable volume.");
 				throw new RuntimeException("Unexpected response from storage server");
 			default:
-				logger.error("Blob upload failed with unexpected response " + result.getResponseCode());
 				throw new RuntimeException("Unexpected response from storage server");
 			}
 		}
@@ -177,13 +159,10 @@ public class StorageAction {
 		if (!result.isOk()) {
 			switch (result.getResponseCode()) {
 			case 400:
-				logger.error("Blob retrieval failed because of syntactically invalid request url.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 404:
-				logger.error("Blob retrieval failed because of unlocatable blob.");
 				throw new RuntimeException("Unexpected response from storage server");
 			default:
-				logger.error("Blob retrieval failed with unexpected response " + result.getResponseCode());
 				throw new RuntimeException("Unexpected response from storage server");
 			}
 		}
@@ -228,19 +207,14 @@ public class StorageAction {
 		if (!result.isOk()) {
 			switch (result.getResponseCode()) {
 			case 400:
-				logger.error("Blob deletion failed because of syntactically invalid request url.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 401:
-				logger.error("Blob deletion failed because of missing token.");
 				throw new RuntimeException("Unexpected response from storage server");
 			case 403:
-				logger.error("Blob deletion failed because of invalid token.");
 				throw new QblStorageInvalidToken();
 			case 404:
-				logger.error("Blob deletion failed because of unlocatable resource.");
 				throw new RuntimeException("Unexpected response from storage server");
 			default:
-				logger.error("Blob deletion failed with unexpected response " + result.getResponseCode());
 				throw new RuntimeException("Unexpected response from storage server");
 			}
 		}

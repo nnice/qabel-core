@@ -4,10 +4,8 @@ import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.bouncycastle.util.encoders.DecoderException;
-import org.bouncycastle.util.encoders.UrlBase64;
+import org.spongycastle.util.encoders.DecoderException;
+import org.spongycastle.util.encoders.UrlBase64;
 
 import de.qabel.core.config.DropServer;
 import de.qabel.core.exceptions.QblDropInvalidURL;
@@ -18,8 +16,6 @@ import de.qabel.core.exceptions.QblDropInvalidURL;
 public class DropURL implements Serializable {
 	private static final long serialVersionUID = 8103657475203731210L;
 
-	private final static Logger logger = LogManager.getLogger(DropURL.class.getName());
-	
 	private URI uri;
 
 	/**
@@ -57,7 +53,6 @@ public class DropURL implements Serializable {
 		try {
 			this.uri = new URI(server.getUri().toString() + "/" + dropId);
 		} catch (URISyntaxException e) {
-			logger.error("Failed to create drop url.", e);
 			// should not happen - cannot recover from this
 			throw new RuntimeException("Failed to create drop url.", e);
 		}
