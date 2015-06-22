@@ -16,6 +16,8 @@ import java.util.Collection;
 
 
 public class DropHTTP {
+	public DropHTTP() {
+	}
 
 	String dateFormat;
 

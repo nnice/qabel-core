@@ -5,16 +5,14 @@ import java.util.Arrays;
 
 import de.qabel.core.config.Identity;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import de.qabel.core.config.Contact;
 import de.qabel.core.drop.DropMessage;
 import de.qabel.core.exceptions.QblDropInvalidMessageSizeException;
 import de.qabel.core.exceptions.QblDropPayloadSizeException;
 import de.qabel.core.exceptions.QblVersionMismatchException;
-import org.bouncycastle.crypto.InvalidCipherTextException;
-import org.bouncycastle.util.encoders.Hex;
+import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.util.encoders.Hex;
 
 /**
  * Drop message in binary transport format version 0
@@ -25,9 +23,6 @@ public class BinaryDropMessageV0 extends AbstractBinaryDropMessage {
 	private static final int BOX_HEADER_SIZE = 100;
 	private static final int PAYLOAD_SIZE = 2048;
 	private byte[] binaryMessage;
-
-	private static final Logger logger = LogManager
-			.getLogger(BinaryDropMessageV0.class.getName());
 
 	public BinaryDropMessageV0(DropMessage<?> dropMessage)
 			throws QblDropPayloadSizeException {
@@ -67,7 +62,6 @@ public class BinaryDropMessageV0 extends AbstractBinaryDropMessage {
 					recipient.getEcPublicKey(), getPaddedMessage(), 0);
 		} catch (InvalidKeyException e) {
 			// should not happen
-			logger.error("Invalid key", e);
 			throw new RuntimeException(e);
 		}
 		return box;
@@ -86,9 +80,7 @@ public class BinaryDropMessageV0 extends AbstractBinaryDropMessage {
 			decryptedPlaintext = cu.readBox(identity.getPrimaryKeyPair(),
 					Arrays.copyOfRange(binaryMessage, HEADER_SIZE, binaryMessage.length));
 		} catch (InvalidKeyException e) {
-			logger.debug("Message invalid or not meant for this recipient");
 		} catch (InvalidCipherTextException e) {
-			logger.debug("Message invalid or not meant for this recipient: " + e.getMessage());
 		}
 		return decryptedPlaintext;
 	}

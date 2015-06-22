@@ -7,8 +7,6 @@ import java.util.Set;
 
 import de.qabel.ackack.event.EventEmitter;
 import de.qabel.core.EventNameConstants;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import de.qabel.ackack.Actor;
 import de.qabel.ackack.MessageInfo;
@@ -53,8 +51,6 @@ public class ResourceActor extends Actor {
 	private static final String REMOVE_STORAGEVOLUMES = "removeStorageVolumes";
 	private static final String REMOVE_SYNCEDMODULESETTINGS = "removeSyncedModuleSettings";
 
-	private final static Logger logger = LogManager.getLogger(ResourceActor.class.getName());
-
 	public ResourceActor(Persistence<String> persistence, EventEmitter eventEmitter) {
 		this.persistence = persistence;
 		this.settings = new Settings();
@@ -63,7 +59,9 @@ public class ResourceActor extends Actor {
 		settings.setLocalSettings(new LocalSettings(1000L, new Date()));
 		settings.setSyncedSettings(new SyncedSettings());
 		this.eventEmitter = eventEmitter;
-		loadFromPersistence();
+		if (persistence != null) {
+			loadFromPersistence();
+		}
 	}
 
 	private void loadFromPersistence() {
@@ -495,7 +493,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						Contact contact = (Contact) object;
 						this.contacts.put(contact);
-						persistence.updateOrPersistEntity(contact);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(contact);
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_CONTACT_ADDED, contact);
 					}
 				}
@@ -506,7 +506,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						Account account = (Account) object;
 						accounts.put(account);
-						persistence.updateOrPersistEntity(account);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(account);
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_ACCOUNT_ADDED, account);
 					}
 				}
@@ -517,7 +519,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						DropServer dropServer = (DropServer) object;
 						dropServers.put(dropServer);
-						persistence.updateOrPersistEntity(dropServer);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(dropServer);
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_DROPSERVER_ADDED, dropServer);
 					}
 				}
@@ -528,7 +532,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						Identity identity = (Identity) object;
 						identities.put(identity);
-						persistence.updateOrPersistEntity(identity);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(identity);
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_IDENTITY_ADDED, identity);
 					}
 				}
@@ -541,7 +547,9 @@ public class ResourceActor extends Actor {
 						LocaleModuleSettings localModuleSettings = (LocaleModuleSettings) object;
 						localModuleSettingsList.remove(localModuleSettings);
 						localModuleSettingsList.add(localModuleSettings);
-						persistence.updateOrPersistEntity(localModuleSettings);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(localModuleSettings);
+						}
 						//TODO: EMIT THIS EVENT?
 					}
 				}
@@ -558,7 +566,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						StorageServer storageServer = (StorageServer) object;
 						storageServers.put(storageServer);
-						persistence.updateOrPersistEntity(storageServer);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(storageServer);
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_STORAGESERVER_ADDED, storageServer);
 					}
 				}
@@ -569,7 +579,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						StorageVolume storageVolume = (StorageVolume) object;
 						storageVolumes.put(storageVolume);
-						persistence.updateOrPersistEntity(storageVolume);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(storageVolume);
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_STORAGEVOLUME_ADDED, storageVolume);
 					}
 				}
@@ -582,7 +594,9 @@ public class ResourceActor extends Actor {
 						SyncedModuleSettings syncedModuleSettings = (SyncedModuleSettings) object;
 						syncedModuleSettingsList.remove(syncedModuleSettings);
 						syncedModuleSettingsList.add(syncedModuleSettings);
-						persistence.updateOrPersistEntity(syncedModuleSettings);
+						if (persistence != null ) {
+							persistence.updateOrPersistEntity(syncedModuleSettings);
+						}
 						//TODO: EMIT THIS EVENT?
 					}
 				}
@@ -592,7 +606,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						Contact c = contacts.getByKeyIdentifier(object.toString());
 						if(c != null) {
-							persistence.removeEntity(c.getPersistenceID(), Contact.class);
+							if (persistence != null ) {
+								persistence.removeEntity(c.getPersistenceID(), Contact.class);
+							}
 						}
 						this.contacts.remove(object.toString());
 						eventEmitter.emit(EventNameConstants.EVENT_CONTACT_REMOVED, object.toString());
@@ -605,7 +621,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						Account account = (Account) object;
 						accounts.remove(account);
-						persistence.removeEntity(account.getPersistenceID(), account.getClass());
+						if (persistence != null ) {
+							persistence.removeEntity(account.getPersistenceID(), account.getClass());
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_ACCOUNT_REMOVED, account);
 					}
 				}
@@ -616,7 +634,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						DropServer dropServer = (DropServer) object;
 						dropServers.remove(dropServer);
-						persistence.removeEntity(dropServer.getPersistenceID(), dropServer.getClass());
+						if (persistence != null ) {
+							persistence.removeEntity(dropServer.getPersistenceID(), dropServer.getClass());
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_DROPSERVER_REMOVED, dropServer);
 					}
 				}
@@ -627,7 +647,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						Identity identity = (Identity) object;
 						identities.remove(identity);
-						persistence.removeEntity(identity.getPersistenceID(), identity.getClass());
+						if (persistence != null ) {
+							persistence.removeEntity(identity.getPersistenceID(), identity.getClass());
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_IDENTITY_REMOVED, identity.getKeyIdentifier());
 					}
 				}
@@ -639,7 +661,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						LocaleModuleSettings localModuleSettings = (LocaleModuleSettings) object;
 						localModuleSettingsList.remove(localModuleSettings);
-						persistence.removeEntity(localModuleSettings.getPersistenceID(), localModuleSettings.getClass());
+						if (persistence != null ) {
+							persistence.removeEntity(localModuleSettings.getPersistenceID(), localModuleSettings.getClass());
+						}
 						//TODO: EMIT THIS EVENT?
 					}
 				}
@@ -650,7 +674,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						StorageServer storageServer = (StorageServer) object;
 						storageServers.remove(storageServer);
-						persistence.removeEntity(storageServer.getPersistenceID(), storageServer.getClass());
+						if (persistence != null ) {
+							persistence.removeEntity(storageServer.getPersistenceID(), storageServer.getClass());
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_STORAGESERVER_REMOVED, storageServer);
 					}
 				}
@@ -661,7 +687,9 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						StorageVolume storageVolume = (StorageVolume) object;
 						storageVolumes.remove(storageVolume);
-						persistence.removeEntity(storageVolume.getPersistenceID(), storageVolume.getClass());
+						if (persistence != null ) {
+							persistence.removeEntity(storageVolume.getPersistenceID(), storageVolume.getClass());
+						}
 						eventEmitter.emit(EventNameConstants.EVENT_STORAGEVOLUME_REMOVED, storageVolume);
 					}
 				}
@@ -673,13 +701,14 @@ public class ResourceActor extends Actor {
 					for (Object object : data) {
 						SyncedModuleSettings syncedModuleSettings = (SyncedModuleSettings) object;
 						syncedModuleSettingsList.remove(syncedModuleSettings);
-						persistence.removeEntity(syncedModuleSettings.getPersistenceID(), syncedModuleSettings.getClass());
+						if (persistence != null ) {
+							persistence.removeEntity(syncedModuleSettings.getPersistenceID(), syncedModuleSettings.getClass());
+						}
 						//TODO: EMIT THIS EVENT?
 					}
 				}
 				break;
 			default:
-				logger.debug("Unexpected type of MessageInfo: \"" + info.getType() + "\"");
 				break;
 
 		}

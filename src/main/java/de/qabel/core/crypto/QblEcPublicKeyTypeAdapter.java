@@ -3,19 +3,15 @@ package de.qabel.core.crypto;
 import java.io.IOException;
 
 import com.google.gson.Gson;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import org.bouncycastle.util.encoders.Hex;
+import org.spongycastle.util.encoders.Hex;
 
 public class QblEcPublicKeyTypeAdapter extends TypeAdapter<QblECPublicKey> {
 
-	private final static Logger logger = LogManager.getLogger(QblEcPublicKeyTypeAdapter.class
-			.getName());
 
 	@Override
 	public void write(JsonWriter out, QblECPublicKey value) throws IOException {
