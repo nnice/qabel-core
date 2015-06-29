@@ -27,6 +27,8 @@ public class Contact extends Entity {
 	 */
 	private String contactOwnerKeyId;
 
+	private String alias;
+
 	/**
 	 * Returns the primary public key of the contact
 	 * @return QblECPublicKey
@@ -54,7 +56,16 @@ public class Contact extends Entity {
 		return contactOwner;
 	}
 
+	public String getAlias() {
+		return alias;
+	}
+
+	public void setAlias(String alias) {
+		this.alias = alias;
+	}
+
 	/**
+
 	 * Sets the contact owning identity
 	 * @param identity
 	 */
