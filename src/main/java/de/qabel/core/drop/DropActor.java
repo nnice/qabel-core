@@ -38,6 +38,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	Gson gson;
 	ReceiverThread receiver;
 	private long interval = 1000L;
+	private long lastReceive;
 
 	public void setInterval(long interval) {
 		if(interval < 0)
@@ -282,7 +283,8 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 */
 	public Collection<DropMessage<?>> retrieve(URI uri) {
 		DropHTTP http = new DropHTTP();
-		HTTPResult<Collection<byte[]>> cipherMessages = http.receiveMessages(uri);
+		HTTPResult<Collection<byte[]>> cipherMessages = http.receiveMessages(uri, lastReceive);
+		lastReceive = System.currentTimeMillis();
 		Collection<DropMessage<?>> plainMessages = new ArrayList<>();
 
 		List<Contact> ccc = new ArrayList<Contact>(mContacts.getContacts());
