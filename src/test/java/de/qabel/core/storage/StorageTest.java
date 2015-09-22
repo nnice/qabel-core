@@ -11,7 +11,7 @@ import java.util.UUID;
 
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.util.encoders.Hex;
+import org.spongycastle.util.encoders.Hex;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
