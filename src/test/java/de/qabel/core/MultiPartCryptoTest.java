@@ -7,6 +7,7 @@ import de.qabel.core.drop.*;
 import de.qabel.core.exceptions.QblDropInvalidURL;
 import de.qabel.core.exceptions.QblDropPayloadSizeException;
 
+import de.qabel.core.exceptions.QblInvalidEncryptionKeyException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,8 +16,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
@@ -26,6 +25,9 @@ import java.util.HashSet;
 public class MultiPartCryptoTest {
 	private final static String DB_NAME = "MultiPartCryptoTest.sqlite";
 	private final static char[] encryptionPassword = "qabel".toCharArray();
+	private final static String TEST_MESSAGE_TYPE = "test_message";
+	private final static String TEST_MESSAGE_TYPE_UNWANTED = "test_message_unwanted";
+	private final static String TEST_MESSAGE = "Test";
 
 	private EventEmitter emitter;
     private Contacts contacts;
@@ -33,38 +35,11 @@ public class MultiPartCryptoTest {
 	private ResourceActor resourceActor;
 	private Thread resourceActorThread;
 
-
-    static class TestObject extends ModelObject {
-        public TestObject() { }
-        private String str;
-
-        public String getStr() {
-            return str;
-        }
-
-        public void setStr(String str) {
-            this.str = str;
-        }
-    }
-
-	static class UnwantedTestObject extends ModelObject {
-		public UnwantedTestObject() { }
-		private String str;
-
-		public String getStr() {
-			return str;
-		}
-
-		public void setStr(String str) {
-			this.str = str;
-		}
-	}
-
     private DropCommunicatorUtil communicatorUtil;
     private Identity alice;
 
     @Before
-    public void setUp() throws InvalidKeyException, URISyntaxException, QblDropInvalidURL, InterruptedException, InstantiationException, IllegalAccessException {
+    public void setUp() throws InvalidKeyException, URISyntaxException, QblDropInvalidURL, InterruptedException, InstantiationException, IllegalAccessException, QblInvalidEncryptionKeyException {
         Persistence<String> persistence = new SQLitePersistence(DB_NAME, encryptionPassword);
 		resourceActor = new ResourceActor(persistence, EventEmitter.getDefault());
 		resourceActorThread = new Thread(resourceActor);
@@ -86,19 +61,19 @@ public class MultiPartCryptoTest {
 
     @Test
     public void multiPartCryptoOnlyOneMessageTest() throws InterruptedException, QblDropPayloadSizeException {
-        communicatorUtil.registerModelObject(TestObject.class);
+		communicatorUtil.registerModelObject(TEST_MESSAGE_TYPE);
 
         this.sendMessage();
 		this.sendUnwantedMessage();
 
-        DropMessage<TestObject> msg = (DropMessage<TestObject>) communicatorUtil.retrieve();
+		DropMessage msg = communicatorUtil.retrieve();
 
-        assertEquals("Test", msg.getData().getStr());
+		assertEquals("Test", msg.getDropPayload());
     }
 
     @Test
     public void multiPartCryptoMultiMessageTest() throws InterruptedException, QblDropPayloadSizeException {
-        communicatorUtil.registerModelObject(TestObject.class);
+		communicatorUtil.registerModelObject(TEST_MESSAGE_TYPE);
 
 		this.sendUnwantedMessage();
         this.sendMessage();
@@ -107,15 +82,15 @@ public class MultiPartCryptoTest {
 		this.sendUnwantedMessage();
         this.sendMessage();
 
-        DropMessage<TestObject> msg = (DropMessage<TestObject>) communicatorUtil.retrieve();
+		DropMessage msg = communicatorUtil.retrieve();
 
-        assertEquals("Test", msg.getData().getStr());
-        msg = (DropMessage<TestObject>) communicatorUtil.retrieve();
-        assertEquals("Test", msg.getData().getStr());
-        msg = (DropMessage<TestObject>) communicatorUtil.retrieve();
-        assertEquals("Test", msg.getData().getStr());
-        msg = (DropMessage<TestObject>) communicatorUtil.retrieve();
-        assertEquals("Test", msg.getData().getStr());
+		assertEquals("Test", msg.getDropPayload());
+		msg = communicatorUtil.retrieve();
+		assertEquals("Test", msg.getDropPayload());
+		msg = communicatorUtil.retrieve();
+		assertEquals("Test", msg.getDropPayload());
+		msg = communicatorUtil.retrieve();
+		assertEquals("Test", msg.getDropPayload());
     }
 
     private void loadContactsAndIdentities() throws URISyntaxException, InvalidKeyException, QblDropInvalidURL {
@@ -131,10 +106,10 @@ public class MultiPartCryptoTest {
         bob.addDrop(new DropURL(
         		"http://localhost:6000/1234567890123456789012345678901234567890bob"));
 
-		Contact alicesContact = new Contact(alice, null, bobsKey.getPub());
+		Contact alicesContact = new Contact(alice, "Bob", null, bobsKey.getPub());
         alicesContact.addDrop(new DropURL("http://localhost:6000/1234567890123456789012345678901234567890bob"));
 
-        Contact bobsContact = new Contact(bob, null, alicesKey.getPub());
+        Contact bobsContact = new Contact(bob, "Alice", null, alicesKey.getPub());
         alicesContact.addDrop(new DropURL("http://localhost:6000/12345678901234567890123456789012345678alice"));
 
         contacts = new Contacts();
@@ -147,18 +122,14 @@ public class MultiPartCryptoTest {
     }
 
     private void sendMessage() throws QblDropPayloadSizeException {
-        TestObject data = new TestObject();
-        data.setStr("Test");
-        DropMessage<TestObject> dm = new DropMessage<TestObject>(alice, data);
+		DropMessage dm = new DropMessage(alice, TEST_MESSAGE, TEST_MESSAGE_TYPE);
 
         // Send hello world to all contacts.
         DropActor.send(emitter, dm, new HashSet(contacts.getContacts()));
     }
 
 	private void sendUnwantedMessage() throws QblDropPayloadSizeException {
-		UnwantedTestObject data = new UnwantedTestObject();
-		data.setStr("Test");
-		DropMessage<UnwantedTestObject> dm = new DropMessage<UnwantedTestObject>(alice, data);
+		DropMessage dm = new DropMessage(alice, TEST_MESSAGE, TEST_MESSAGE_TYPE_UNWANTED);
 
 		// Send an unknown drop message to all contacts.
         DropActor.send(emitter, dm, new HashSet(contacts.getContacts()));

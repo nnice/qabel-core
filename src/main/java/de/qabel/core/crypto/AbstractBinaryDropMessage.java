@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 import de.qabel.core.config.Identity;
 import de.qabel.core.exceptions.QblSpoofedSenderException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -23,12 +23,12 @@ import de.qabel.core.exceptions.QblVersionMismatchException;
  * Abstract drop message in a binary transport format.
  */
 public abstract class AbstractBinaryDropMessage {
-	private static final Logger logger = LogManager
+	private static final Logger logger = LoggerFactory
 			.getLogger(AbstractBinaryDropMessage.class.getName());
 
 	private byte[] plainPayload;
 
-	public AbstractBinaryDropMessage(DropMessage<?> dropMessage)
+	public AbstractBinaryDropMessage(DropMessage dropMessage)
 			throws QblDropPayloadSizeException {
 		this.plainPayload = serializeMessage(dropMessage);
 		if (plainPayload.length > getPayloadSize()) {
@@ -61,7 +61,7 @@ public abstract class AbstractBinaryDropMessage {
 
 	abstract int getPayloadSize();
 
-	private static byte[] serializeMessage(DropMessage<?> dropMessage) {
+	private static byte[] serializeMessage(DropMessage dropMessage) {
 		Gson gson = new GsonBuilder().registerTypeAdapter(DropMessage.class,
 				new DropSerializer()).create();
 		return gson.toJson(dropMessage).getBytes();
@@ -74,7 +74,7 @@ public abstract class AbstractBinaryDropMessage {
 	 * @return deserialized Dropmessage or null if deserialization error
 	 *         occurred.
 	 */
-	private static DropMessage<?> deserialize(String plainJson) {
+	private static DropMessage deserialize(String plainJson) {
 		Gson gson = new GsonBuilder().registerTypeAdapter(DropMessage.class,
 				new DropDeserializer()).create();
 		try {
@@ -116,13 +116,13 @@ public abstract class AbstractBinaryDropMessage {
 	 * @return Disassembled drop message or null if either the sender assumption
 	 *         was wrong or the message verification failed.
 	 */
-	public DropMessage<?> disassembleMessage(Identity identity) throws QblSpoofedSenderException {
+	public DropMessage disassembleMessage(Identity identity) throws QblSpoofedSenderException {
 		DecryptedPlaintext decryptedPlaintext = disassembleRawMessage(identity);
 		if (decryptedPlaintext == null){
 			return null;
 		}
 
-		DropMessage<?> dropMessage = deserialize(new String(
+		DropMessage dropMessage = deserialize(new String(
 				discardPaddingBytes(decryptedPlaintext.getPlaintext())));
 		if (dropMessage == null) {
 			logger.debug("Message could not be deserialized. Msg: "

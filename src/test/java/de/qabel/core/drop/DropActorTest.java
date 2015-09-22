@@ -6,10 +6,10 @@ import de.qabel.core.crypto.*;
 import de.qabel.core.exceptions.QblDropInvalidURL;
 import de.qabel.core.exceptions.QblDropPayloadSizeException;
 
+import de.qabel.core.exceptions.QblInvalidEncryptionKeyException;
 import org.junit.*;
 
 import java.io.File;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.HashSet;
@@ -27,17 +27,11 @@ public class DropActorTest {
     private Thread resourceActorThread;
 	private ResourceActor resourceActor;
 	private final static char[] encryptionPassword = "qabel".toCharArray();
-
-    static class TestMessage extends ModelObject {
-        public String content;
-
-        public TestMessage(String content) {
-        	this.content = content;
-        }
-    }
+	public static final String TEST_MESSAGE = "baz";
+	public static final String TEST_MESSAGE_TYPE = "test_message";
 
     @Before
-    public void setup() throws URISyntaxException, QblDropInvalidURL, InvalidKeyException, InterruptedException, InstantiationException, IllegalAccessException {
+    public void setup() throws URISyntaxException, QblDropInvalidURL, InvalidKeyException, InterruptedException, InstantiationException, IllegalAccessException, QblInvalidEncryptionKeyException {
 		Persistence<String> persistence = new SQLitePersistence(DB_NAME, encryptionPassword);
 		resourceActor = new ResourceActor(persistence, EventEmitter.getDefault());
 		resourceActorThread = new Thread(resourceActor);
@@ -48,8 +42,8 @@ public class DropActorTest {
     	recipient = new Identity("Bob", null, new QblECKeyPair());
     	recipient.addDrop(new DropURL(cUrl));
 
-    	recipientContact = new Contact(this.sender, this.recipient.getDropUrls(), recipient.getEcPublicKey());
-    	senderContact = new Contact(this.recipient, this.sender.getDropUrls(), sender.getEcPublicKey());
+    	recipientContact = new Contact(this.sender, "Bob",  this.recipient.getDropUrls(), recipient.getEcPublicKey());
+    	senderContact = new Contact(this.recipient, "Alice",  this.sender.getDropUrls(), sender.getEcPublicKey());
 
     	identities = new Identities();
     	identities.put(this.sender);
@@ -60,7 +54,7 @@ public class DropActorTest {
     	contacts.put(recipientContact);
 
         controller = DropCommunicatorUtil.newInstance(resourceActor, emitter, contacts, identities);
-        controller.registerModelObject(TestMessage.class);
+		controller.registerModelObject(TEST_MESSAGE_TYPE);
     }
 
     @After
@@ -75,9 +69,7 @@ public class DropActorTest {
 
     @Test
     public void sendAndForgetTest() throws QblDropInvalidURL, QblDropPayloadSizeException, InterruptedException {
-        TestMessage m = new TestMessage("baz");
-
-        DropMessage<TestMessage> dm = new DropMessage<TestMessage>(sender, m);
+		DropMessage dm = new DropMessage(sender, TEST_MESSAGE, TEST_MESSAGE_TYPE);
 
         HashSet<Contact> recipients = new HashSet<Contact>();
         recipients.add(recipientContact);
@@ -89,25 +81,21 @@ public class DropActorTest {
 
     @Test
     public void sendAndForgetAutoTest() throws InvalidKeyException, QblDropInvalidURL, QblDropPayloadSizeException, InterruptedException {
-        TestMessage m = new TestMessage("baz");
 
-        DropActor.send(emitter, m, recipientContact);
-
+		DropActor.send(emitter, TEST_MESSAGE, TEST_MESSAGE_TYPE, recipientContact);
         retrieveTest();
     }
 
     @Test
     public void sendTestSingle() throws InvalidKeyException, QblDropInvalidURL, QblDropPayloadSizeException, InterruptedException {
-        TestMessage m = new TestMessage("baz");
-
-        DropMessage<TestMessage> dm = new DropMessage<TestMessage>(sender, m);
+		DropMessage dm = new DropMessage(sender, TEST_MESSAGE, TEST_MESSAGE_TYPE);
 
         DropActor.send(emitter, dm, recipientContact);
         retrieveTest();
     }
 
     public void retrieveTest() throws QblDropInvalidURL, InterruptedException {
-		DropMessage<?> dm = controller.retrieve();
+		DropMessage dm = controller.retrieve();
 		Assert.assertEquals(sender.getKeyIdentifier(), dm.getSender().getKeyIdentifier());
     }
 }

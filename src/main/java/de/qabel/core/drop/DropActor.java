@@ -5,8 +5,6 @@ import java.net.URI;
 import java.security.SecureRandom;
 import java.util.*;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import de.qabel.ackack.MessageInfo;
 import de.qabel.ackack.Responsible;
 import de.qabel.ackack.event.*;
@@ -19,8 +17,8 @@ import de.qabel.core.exceptions.QblSpoofedSenderException;
 import de.qabel.core.exceptions.QblVersionMismatchException;
 import de.qabel.core.http.DropHTTP;
 import de.qabel.core.http.HTTPResult;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 /**
  * DropActor is registered to Contact, Identity and DropServer added and removed events. On instantiation all Contacts,
@@ -28,7 +26,7 @@ import org.apache.logging.log4j.Logger;
  * event listeners allows the DropActor to receive and store changes to these resources.
  */
 public class DropActor extends EventActor implements de.qabel.ackack.event.EventListener {
-	private final static Logger logger = LogManager.getLogger(DropActor.class.getName());
+	private final static Logger logger = LoggerFactory.getLogger(DropActor.class.getName());
 
 	public static final String EVENT_DROP_MESSAGE_RECEIVED_PREFIX = "dropMessageReceived";
 	private static final String EVENT_ACTION_DROP_MESSAGE_SEND = "sendDropMessage";
@@ -37,8 +35,6 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	private DropServers mDropServers;
 	private Identities mIdentities;
 	private Contacts mContacts;
-	GsonBuilder gb;
-	Gson gson;
 	ReceiverThread receiver;
 	private long interval = 1000L;
 
@@ -58,10 +54,6 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 		this.mContacts = new Contacts();
 		this.mIdentities = new Identities();
 		this.mDropServers = new DropServers();
-		gb = new GsonBuilder();
-		gb.registerTypeAdapter(DropMessage.class, new DropSerializer());
-		gb.registerTypeAdapter(DropMessage.class, new DropDeserializer());
-		gson = gb.create();
 		on(EVENT_ACTION_DROP_MESSAGE_SEND, this);
 		on(EventNameConstants.EVENT_CONTACT_ADDED, this);
 		on(EventNameConstants.EVENT_CONTACT_REMOVED, this);
@@ -125,7 +117,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @param message  DropMessage to be send
 	 * @param contacts Receiver of the message
 	 */
-	public static <T extends Serializable & Collection<Contact>> void send(EventEmitter emitter, DropMessage<? extends ModelObject> message, T contacts) {
+	public static <T extends Serializable & Collection<Contact>> void send(EventEmitter emitter, DropMessage message, T contacts) {
 		int nbr;
 		if ((nbr = emitter.emit(EVENT_ACTION_DROP_MESSAGE_SEND, message, contacts)) != 1) {
 			throw new RuntimeException("EVENT_ACTION_DROP_MESSAGE_SEND should only listened by one Listener (listener count = " + nbr + ")");
@@ -139,7 +131,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @param message DropMessage to be send
 	 * @param contact Receiver of the message
 	 */
-	public static void send(EventEmitter emitter, DropMessage<? extends ModelObject> message, Contact contact) {
+	public static void send(EventEmitter emitter, DropMessage message, Contact contact) {
 		ArrayList<Contact> contacts = new ArrayList<>(1);
 		contacts.add(contact);
 		send(emitter, message, contacts);
@@ -152,10 +144,10 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @param message ModelObject to be send
 	 * @param contact Receiver of the message
 	 */
-	public static void send(EventEmitter emitter, ModelObject message, Contact contact) {
+	public static void send(EventEmitter emitter, String dropPayload, String dropPayloadType, Contact contact) {
 		ArrayList<Contact> contacts = new ArrayList<>(1);
 		contacts.add(contact);
-		DropMessage<ModelObject> dm = new DropMessage<>(contact.getContactOwner(), message);
+		DropMessage dm = new DropMessage(contact.getContactOwner(), dropPayload, dropPayloadType);
 		send(emitter, dm, contacts);
 	}
 
@@ -165,9 +157,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 *
 	 * @param dm DropMessage which should be handled
 	 */
-	private void handleDrop(DropMessage<? extends ModelObject> dm) {
-		Class<? extends ModelObject> cls = dm.getModelObject();
-
+	private void handleDrop(DropMessage dm) {
 		emitter.emit("dropMessage", dm);
 	}
 
@@ -199,11 +189,11 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	private void retrieve() {
 		for(Identity identity : mIdentities.getIdentities()) {
 			for(DropURL dropUrl: identity.getDropUrls()) {
-				Collection<DropMessage<?>> results = this.retrieve(dropUrl.getUri());
+				Collection<DropMessage> results = this.retrieve(dropUrl.getUri());
 				MessageInfo mi = new MessageInfo();
 				mi.setType(PRIVATE_TYPE_MESSAGE_INPUT);
-				for (DropMessage<? extends ModelObject> dm : results) {
-					emitter.emit(EVENT_DROP_MESSAGE_RECEIVED_PREFIX + dm.getData().getClass().getCanonicalName(), dm);
+				for (DropMessage dm : results) {
+					emitter.emit(EVENT_DROP_MESSAGE_RECEIVED_PREFIX + dm.getDropPayloadType(), dm);
 				}
 			}
 		}
@@ -220,7 +210,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @return DropResult which tell you the state of the sending
 	 * @throws QblDropPayloadSizeException
 	 */
-	private DropResult send(DropMessage<? extends ModelObject> message, Collection<Contact> contacts) throws QblDropPayloadSizeException {
+	private DropResult send(DropMessage message, Collection<Contact> contacts) throws QblDropPayloadSizeException {
 		return sendAndForget(message, contacts);
 	}
 
@@ -232,7 +222,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @return DropResult which tell you the state of the sending
 	 * @throws QblDropPayloadSizeException
 	 */
-	private <T extends ModelObject> DropResult sendAndForget(DropMessage<T> message, Collection<Contact> contacts) throws QblDropPayloadSizeException {
+	private DropResult sendAndForget(DropMessage message, Collection<Contact> contacts) throws QblDropPayloadSizeException {
 		DropResult result = new DropResult();
 
 		for (Contact contact : contacts) {
@@ -250,10 +240,10 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @return DropResultContact which tell you the state of the sending
 	 * @throws QblDropPayloadSizeException
 	 */
-	private <T extends ModelObject> DropResultContact sendAndForget(T object, Contact contact) throws QblDropPayloadSizeException {
+	private DropResultContact sendAndForget(String dropPayload, String dropPayloadType, Contact contact) throws QblDropPayloadSizeException {
 		DropHTTP http = new DropHTTP();
 
-		DropMessage<T> dm = new DropMessage<T>(contact.getContactOwner(), object);
+		DropMessage dm = new DropMessage(contact.getContactOwner(), dropPayload, dropPayloadType);
 
 		return sendAndForget(dm, contact);
 	}
@@ -266,7 +256,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @return DropResultContact which tell you the state of the sending
 	 * @throws QblDropPayloadSizeException
 	 */
-	private <T extends ModelObject> DropResultContact sendAndForget(DropMessage<T> message, Contact contact) throws QblDropPayloadSizeException {
+	private DropResultContact sendAndForget(DropMessage message, Contact contact) throws QblDropPayloadSizeException {
 		DropResultContact result = new DropResultContact(contact);
 		DropHTTP http = new DropHTTP();
 
@@ -285,10 +275,10 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	 * @param uri      URI where to retrieve the drop from
 	 * @return Retrieved, encrypted Dropmessages.
 	 */
-	public Collection<DropMessage<?>> retrieve(URI uri) {
+	public Collection<DropMessage> retrieve(URI uri) {
 		DropHTTP http = new DropHTTP();
 		HTTPResult<Collection<byte[]>> cipherMessages = http.receiveMessages(uri);
-		Collection<DropMessage<?>> plainMessages = new ArrayList<>();
+		Collection<DropMessage> plainMessages = new ArrayList<>();
 
 		List<Contact> ccc = new ArrayList<Contact>(mContacts.getContacts());
 		Collections.shuffle(ccc, new SecureRandom());
@@ -317,7 +307,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 					continue;
 			}
 			for (Identity identity : mIdentities.getIdentities()) {
-				DropMessage<?> dropMessage = null;
+				DropMessage dropMessage = null;
 				try {
 					dropMessage = binMessage.disassembleMessage(identity);
 				} catch (QblSpoofedSenderException e) {
@@ -345,7 +335,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 		switch (event) {
 			case EVENT_ACTION_DROP_MESSAGE_SEND:
 				try {
-					send((DropMessage<?>) data[0], (Collection) data[1]);
+					send((DropMessage) data[0], (Collection) data[1]);
 				} catch (QblDropPayloadSizeException e) {
 					logger.warn("Failed to send message", e);
 				}
