@@ -22,11 +22,19 @@ class S3WriteBackend extends StorageWriteBackend {
 
 	@Override
 	void upload(String name, InputStream inputStream) throws QblStorageException {
-		s3Client.putObject(bucket, prefix + '/' + name, inputStream, new ObjectMetadata());
+		try {
+			s3Client.putObject(bucket, prefix + '/' + name, inputStream, new ObjectMetadata());
+		} catch (RuntimeException e) {
+			throw new QblStorageException(e);
+		}
 	}
 
 	@Override
 	void delete(String name) throws QblStorageException {
-		s3Client.deleteObject(bucket, prefix + '/' + name);
+		try {
+			s3Client.deleteObject(bucket, prefix + '/' + name);
+		} catch (RuntimeException e) {
+			throw new QblStorageException(e);
+		}
 	}
 }
