@@ -1,14 +1,17 @@
 package de.qabel.core.storage;
 
+import de.qabel.core.crypto.CryptoUtils;
+import de.qabel.core.crypto.QblECKeyPair;
+import de.qabel.core.crypto.QblECPublicKey;
 import de.qabel.core.exceptions.QblStorageException;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
+import java.nio.ByteBuffer;
+import java.util.UUID;
 
-import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertThat;
 
 public class DirectoryMetadataTest {
 
@@ -16,7 +19,13 @@ public class DirectoryMetadataTest {
 
 	@Before
 	public void setUp() throws Exception {
-		dm = DirectoryMetadata.newDatabase();
+		// device id
+		UUID uuid = UUID.randomUUID();
+		ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+		bb.putLong(uuid.getMostSignificantBits());
+		bb.putLong(uuid.getLeastSignificantBits());
+
+		dm = DirectoryMetadata.newDatabase(bb.array());
 	}
 
 	@Test
@@ -31,10 +40,33 @@ public class DirectoryMetadataTest {
 	}
 
 	@Test
-	public void testInsertFile() throws QblStorageException {
+	public void testFileOperations() throws QblStorageException {
 		BoxFile file = new BoxFile("block", "name", 0l, 0l, new byte[] {1,2,});
 		dm.insertFile(file);
 		assertThat(dm.listFiles().size(), is(1));
 		assertThat(file, equalTo(dm.listFiles().get(0)));
+		dm.deleteFile(file);
+		assertThat(dm.listFiles().size(), is(0));
+	}
+
+	@Test
+	public void testFolderOperations() throws QblStorageException {
+		BoxFolder folder = new BoxFolder("block", "name", new byte[] {1,2,});
+		dm.insertFolder(folder);
+		assertThat(dm.listFolders().size(), is(1));
+		assertThat(folder, equalTo(dm.listFolders().get(0)));
+		dm.deleteFolder(folder);
+		assertThat(dm.listFolders().size(), is(0));
+	}
+
+	@Test
+	public void testExternalOperations() throws QblStorageException {
+		BoxExternal external = new BoxExternal("https://foobar", "name",
+				new QblECKeyPair().getPub(), new byte[] {1,2,});
+		dm.insertExternal(external);
+		assertThat(dm.listExternals().size(), is(1));
+		assertThat(external, equalTo(dm.listExternals().get(0)));
+		dm.deleteExternal(external);
+		assertThat(dm.listExternals().size(), is(0));
 	}
 }
