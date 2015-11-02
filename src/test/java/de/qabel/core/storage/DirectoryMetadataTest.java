@@ -58,6 +58,7 @@ public class DirectoryMetadataTest {
 		assertThat(folder, equalTo(dm.listFolders().get(0)));
 		dm.deleteFolder(folder);
 		assertThat(dm.listFolders().size(), is(0));
+		assertThat(dm.path.toAbsolutePath().toString(), startsWith("/tmp"));
 	}
 
 	@Test

@@ -8,6 +8,9 @@ import org.joda.time.DateTimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
@@ -21,6 +24,7 @@ class DirectoryMetadata {
 	private Connection connection;
 	byte[] deviceId;
 	String root;
+	Path path;
 
 
 	private final String initSql =
@@ -59,23 +63,30 @@ class DirectoryMetadata {
 					+ "INSERT INTO spec_version (version) VALUES(0)";
 
 
-	public DirectoryMetadata(Connection connection, String root, byte[] deviceId) {
+	public DirectoryMetadata(Connection connection, String root, byte[] deviceId, Path path) {
 		this.connection = connection;
 		this.root = root;
 		this.deviceId = deviceId;
+		this.path = path;
 	}
 
 	static DirectoryMetadata newDatabase(String root, byte[] deviceId) throws QblStorageException {
+		Path path;
+		try {
+			path = Files.createTempFile("", "");
+		} catch (IOException e) {
+			throw new QblStorageException(e);
+		}
 		Connection connection;
 		try {
 			Class.forName(JDBC_CLASS_NAME);
-			connection = DriverManager.getConnection(JDBC_PREFIX + ":memory:");
+			connection = DriverManager.getConnection(JDBC_PREFIX + path.toAbsolutePath().toString());
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException("Cannot load JDBC class!", e);
 		} catch (SQLException e) {
 			throw new RuntimeException("Cannot load in-memory database!", e);
 		}
-		DirectoryMetadata dm = new DirectoryMetadata(connection, root, deviceId);
+		DirectoryMetadata dm = new DirectoryMetadata(connection, root, deviceId, path);
 		try {
 			dm.initDatabase();
 		} catch (SQLException e) {
