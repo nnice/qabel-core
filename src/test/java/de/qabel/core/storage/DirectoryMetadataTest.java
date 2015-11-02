@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.sql.SQLException;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -25,7 +26,7 @@ public class DirectoryMetadataTest {
 		bb.putLong(uuid.getMostSignificantBits());
 		bb.putLong(uuid.getLeastSignificantBits());
 
-		dm = DirectoryMetadata.newDatabase(bb.array());
+		dm = DirectoryMetadata.newDatabase("https://localhost", bb.array());
 	}
 
 	@Test
@@ -68,5 +69,23 @@ public class DirectoryMetadataTest {
 		assertThat(external, equalTo(dm.listExternals().get(0)));
 		dm.deleteExternal(external);
 		assertThat(dm.listExternals().size(), is(0));
+	}
+
+	@Test
+	public void testLastChangedBy() throws SQLException, QblStorageException {
+		assertThat(dm.deviceId, is(dm.getLastChangedBy()));
+		dm.deviceId = new byte[] {1,1};
+		dm.setLastChangedBy();
+		assertThat(dm.deviceId, is(dm.getLastChangedBy()));
+	}
+
+	@Test
+	public void testRoot() throws QblStorageException {
+		assertThat(dm.getRoot(), startsWith("https://"));
+	}
+
+	@Test
+	public void testSpecVersion() throws QblStorageException {
+		assertThat(dm.getSpecVersion(), is(0));
 	}
 }

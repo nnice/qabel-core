@@ -1,16 +1,13 @@
 package de.qabel.core.storage;
 
-import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.crypto.QblECPublicKey;
 import de.qabel.core.exceptions.QblStorageException;
-import de.qabel.core.module.ModuleManager;
-import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.jcajce.provider.digest.SHA256;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
@@ -22,7 +19,8 @@ class DirectoryMetadata {
 	private final static String JDBC_CLASS_NAME = "org.sqlite.JDBC";
 	private final static String JDBC_PREFIX = "jdbc:sqlite:";
 	private Connection connection;
-	private byte[] deviceId;
+	byte[] deviceId;
+	String root;
 
 
 	private final String initSql =
@@ -57,15 +55,17 @@ class DirectoryMetadata {
 					+ " owner BLOB NOT NULL,"
 					+ " name VARCHAR(255)NOT NULL,"
 					+ " key BLOB NOT NULL,"
-					+ " url TEXT NOT NULL )";
+					+ " url TEXT NOT NULL );"
+					+ "INSERT INTO spec_version (version) VALUES(0)";
 
 
-	public DirectoryMetadata(Connection connection, byte[] deviceId) {
+	public DirectoryMetadata(Connection connection, String root, byte[] deviceId) {
 		this.connection = connection;
+		this.root = root;
 		this.deviceId = deviceId;
 	}
 
-	static DirectoryMetadata newDatabase(byte[] deviceId) throws QblStorageException {
+	static DirectoryMetadata newDatabase(String root, byte[] deviceId) throws QblStorageException {
 		Connection connection;
 		try {
 			Class.forName(JDBC_CLASS_NAME);
@@ -75,7 +75,7 @@ class DirectoryMetadata {
 		} catch (SQLException e) {
 			throw new RuntimeException("Cannot load in-memory database!", e);
 		}
-		DirectoryMetadata dm = new DirectoryMetadata(connection, deviceId);
+		DirectoryMetadata dm = new DirectoryMetadata(connection, root, deviceId);
 		try {
 			dm.initDatabase();
 		} catch (SQLException e) {
@@ -93,6 +93,74 @@ class DirectoryMetadata {
 			statement.setBytes(1, initVersion());
 			statement.setLong(2, DateTimeUtils.currentTimeMillis());
 			statement.executeUpdate();
+		}
+		setLastChangedBy();
+		setRoot(root);
+	}
+
+	private void setRoot(String root) throws SQLException {
+		try (PreparedStatement statement = connection.prepareStatement(
+				"INSERT OR REPLACE INTO meta (name, value) VALUES ('root', ?)")) {
+			statement.setString(1, root);
+			statement.executeUpdate();
+		}
+	}
+
+	String getRoot() throws QblStorageException {
+		try (Statement statement = connection.createStatement()) {
+			try (ResultSet rs = statement.executeQuery(
+					"SELECT value FROM meta WHERE name='root'")) {
+				if (rs.next()) {
+					return rs.getString(1);
+				} else {
+					throw new QblStorageException("No version found!");
+				}
+			}
+		} catch (SQLException e) {
+			throw new QblStorageException(e);
+		}
+	}
+
+	Integer getSpecVersion() throws QblStorageException {
+		try (Statement statement = connection.createStatement()) {
+			try (ResultSet rs = statement.executeQuery(
+					"SELECT version FROM spec_version")) {
+				if (rs.next()) {
+					return rs.getInt(1);
+				} else {
+					throw new QblStorageException("No version found!");
+				}
+			}
+		} catch (SQLException e) {
+			throw new QblStorageException(e);
+		}
+	}
+
+	void setLastChangedBy() throws SQLException {
+		try (PreparedStatement statement = connection.prepareStatement(
+				"INSERT OR REPLACE INTO meta (name, value) VALUES ('last_change_by', ?)")) {
+			String x = Hex.encodeHexString(deviceId);
+			statement.setString(1, x);
+			statement.executeUpdate();
+		}
+
+	}
+
+	byte[] getLastChangedBy() throws QblStorageException {
+		try (Statement statement = connection.createStatement()) {
+			try (ResultSet rs = statement.executeQuery(
+					"SELECT value FROM meta WHERE name='last_change_by'")) {
+				if (rs.next()) {
+					String lastChanged = rs.getString(1);
+					return Hex.decodeHex(lastChanged.toCharArray());
+				} else {
+					throw new QblStorageException("No version found!");
+				}
+			} catch (DecoderException e) {
+				throw new QblStorageException(e);
+			}
+		} catch (SQLException e) {
+			throw new QblStorageException(e);
 		}
 	}
 
@@ -141,6 +209,7 @@ class DirectoryMetadata {
 			if (statement.executeUpdate() != 1) {
 				throw new QblStorageException("Could not update version!");
 			}
+			setLastChangedBy();
 		} catch (SQLException e) {
 			throw new QblStorageException(e);
 		}
