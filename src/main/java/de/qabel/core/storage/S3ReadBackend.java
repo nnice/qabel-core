@@ -1,6 +1,7 @@
 package de.qabel.core.storage;
 
 import de.qabel.core.exceptions.QblStorageException;
+import de.qabel.core.exceptions.QblStorageNotFound;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -40,8 +41,11 @@ class S3ReadBackend extends StorageReadBackend {
 		} catch (IOException e) {
 			throw new QblStorageException(e);
 		}
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new QblStorageException("Not successful");
+		int status = response.getStatusLine().getStatusCode();
+		if (status == 404 || status == 403) {
+			throw new QblStorageNotFound("File not found");
+		} else if (status != 200) {
+			throw new QblStorageException("Download error");
 		}
 		HttpEntity entity = response.getEntity();
 		if (entity == null) {
