@@ -275,7 +275,7 @@ class DirectoryMetadata {
 			throw new QblStorageException(e);
 		}
 	}
-	public void insertFolder(BoxFolder folder) throws QblStorageException {
+	void insertFolder(BoxFolder folder) throws QblStorageException {
 		try {
 			PreparedStatement st = connection.prepareStatement(
 					"INSERT INTO folders (ref, name, key) VALUES(?, ?, ?)");
@@ -291,7 +291,7 @@ class DirectoryMetadata {
 		}
 	}
 
-	public void deleteFolder(BoxFolder folder) throws QblStorageException {
+	void deleteFolder(BoxFolder folder) throws QblStorageException {
 		try {
 			PreparedStatement st = connection.prepareStatement(
 					"DELETE FROM folders WHERE name=?");
@@ -320,7 +320,7 @@ class DirectoryMetadata {
 		}
 	}
 
-	public void insertExternal(BoxExternal external) throws QblStorageException {
+	void insertExternal(BoxExternal external) throws QblStorageException {
 		try {
 			PreparedStatement st = connection.prepareStatement(
 					"INSERT INTO externals (url, name, owner, key) VALUES(?, ?, ?, ?)");
@@ -337,7 +337,7 @@ class DirectoryMetadata {
 		}
 	}
 
-	public void deleteExternal(BoxExternal external) throws QblStorageException {
+	void deleteExternal(BoxExternal external) throws QblStorageException {
 		try {
 			PreparedStatement st = connection.prepareStatement(
 					"DELETE FROM externals WHERE name=?");
