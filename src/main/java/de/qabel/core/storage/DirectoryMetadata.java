@@ -70,6 +70,12 @@ class DirectoryMetadata {
 		this.path = path;
 	}
 
+	public DirectoryMetadata(Connection connection, byte[] deviceId, Path path) {
+		this.connection = connection;
+		this.deviceId = deviceId;
+		this.path = path;
+	}
+
 	static DirectoryMetadata newDatabase(String root, byte[] deviceId) throws QblStorageException {
 		Path path;
 		try {
@@ -95,6 +101,20 @@ class DirectoryMetadata {
 		return dm;
 	}
 
+	static DirectoryMetadata openDatabase(Path path, byte[] deviceId) throws QblStorageException {
+		Connection connection;
+		try {
+			Class.forName(JDBC_CLASS_NAME);
+			connection = DriverManager.getConnection(JDBC_PREFIX + path.toAbsolutePath().toString());
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException("Cannot load JDBC class!", e);
+		} catch (SQLException e) {
+			throw new RuntimeException("Cannot load in-memory database!", e);
+		}
+		DirectoryMetadata dm = new DirectoryMetadata(connection, deviceId, path);
+		return dm;
+	}
+
 	private void initDatabase() throws SQLException, QblStorageException {
 		try (Statement statement = connection.createStatement()) {
 			statement.executeUpdate(initSql);
@@ -106,7 +126,11 @@ class DirectoryMetadata {
 			statement.executeUpdate();
 		}
 		setLastChangedBy();
-		setRoot(root);
+		// only set root if this actually has a root attribute
+		// (only index metadata files have it)
+		if (root != null) {
+			setRoot(root);
+		}
 	}
 
 	private void setRoot(String root) throws SQLException {
@@ -124,7 +148,7 @@ class DirectoryMetadata {
 				if (rs.next()) {
 					return rs.getString(1);
 				} else {
-					throw new QblStorageException("No version found!");
+					throw new QblStorageException("No root found!");
 				}
 			}
 		} catch (SQLException e) {

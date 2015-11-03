@@ -9,9 +9,9 @@ import java.io.InputStream;
 
 class S3WriteBackend extends StorageWriteBackend {
 
-	private final AmazonS3Client s3Client;
-	private final String bucket;
-	private final String prefix;
+	final AmazonS3Client s3Client;
+	final String bucket;
+	final String prefix;
 
 	S3WriteBackend(AWSCredentials credentials, String bucket, String prefix) {
 		s3Client = new AmazonS3Client(credentials);
@@ -37,4 +37,5 @@ class S3WriteBackend extends StorageWriteBackend {
 			throw new QblStorageException(e);
 		}
 	}
+
 }
