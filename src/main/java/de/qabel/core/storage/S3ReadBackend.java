@@ -53,9 +53,10 @@ class S3ReadBackend extends StorageReadBackend {
 			throw new QblStorageException(e);
 		}
 		int status = response.getStatusLine().getStatusCode();
-		if (status == 404 || status == 403) {
+		if ((status == 404) || (status == 403)) {
 			throw new QblStorageNotFound("File not found");
-		} else if (status != 200) {
+		}
+		if (status != 200) {
 			throw new QblStorageException("Download error");
 		}
 		HttpEntity entity = response.getEntity();

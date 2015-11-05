@@ -8,6 +8,13 @@ import java.util.List;
 
 public interface BoxNavigation {
 
+	/**
+	 * Bumps the version and uploads the metadata file
+	 *
+	 * All actions are not guaranteed to be finished before the commit
+	 * method returned.
+	 * @throws QblStorageException
+	 */
 	void commit() throws QblStorageException;
 
 	BoxNavigation navigate(BoxFolder target) throws QblStorageException;

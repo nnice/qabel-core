@@ -46,7 +46,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 		try {
 			InputStream indexDl = readBackend.download(target.ref);
 			tmp = Files.createTempFile(null, null);
-			SecretKey key = new SecretKeySpec(target.key, "AES");
+			SecretKey key = makeKey(target.key);
 			if (cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(indexDl, tmp.toFile(), key)) {
 				DirectoryMetadata dm = DirectoryMetadata.openDatabase(tmp, deviceId, target.ref);
 				return new FolderNavigation(dm, keyPair, target.key, deviceId, readBackend, writeBackend);
@@ -56,6 +56,10 @@ public abstract class AbstractNavigation implements BoxNavigation {
 		} catch (IOException | InvalidKeyException e) {
 			throw new QblStorageException(e);
 		}
+	}
+
+	private SecretKey makeKey(byte[] key2) {
+		return new SecretKeySpec(key2, "AES");
 	}
 
 	@Override
@@ -106,7 +110,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 	public InputStream download(BoxFile boxFile) throws QblStorageException {
 		InputStream download = readBackend.download(boxFile.block);
 		File temp;
-		SecretKey key = new SecretKeySpec(boxFile.key, "AES");
+		SecretKey key = makeKey(boxFile.key);
 		try {
 			temp = Files.createTempFile("", "").toFile();
 			if (!cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(download, temp, key)) {

@@ -309,7 +309,7 @@ class DirectoryMetadata {
 					"DELETE FROM files WHERE name=?");
 			st.setString(1, file.name);
 			if (st.executeUpdate() != 1) {
-				throw new QblStorageException("Failed to insert file");
+				throw new QblStorageException("Failed to delete file: Not found");
 			}
 
 		} catch (SQLException e) {

@@ -46,7 +46,6 @@ public class DirectoryMetadataTest {
 		assertThat(file, equalTo(dm.listFiles().get(0)));
 		dm.deleteFile(file);
 		assertThat(dm.listFiles().size(), is(0));
-		assertThat(file, is(dm.getFile("name")));
 	}
 
 	@Test
