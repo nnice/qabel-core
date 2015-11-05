@@ -14,8 +14,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.junit.Assert.assertNotNull;
@@ -28,6 +30,7 @@ public abstract class BoxVolumeTest {
 	byte[] deviceID;
 	final String bucket = "qabel";
 	String prefix = UUID.randomUUID().toString();
+	private final String testFileName = "src/test/java/de/qabel/core/crypto/testFile";
 
 	@Before
 	public void setUp() throws IOException {
@@ -67,7 +70,6 @@ public abstract class BoxVolumeTest {
 	public void testUploadFile() throws QblStorageException, IOException {
 		volume.createIndex(bucket, prefix);
 		BoxNavigation nav = volume.navigate();
-		String testFileName = "src/test/java/de/qabel/core/crypto/testFile";
 		File file = new File(testFileName);
 		nav.upload("foobar", file);
 		nav.commit();
@@ -76,6 +78,28 @@ public abstract class BoxVolumeTest {
 		assertNotNull("Download stream is null", dlStream);
 		byte[] dl = IOUtils.toByteArray(dlStream);
 		assertThat(dl, is(Files.readAllBytes(file.toPath())));
+	}
+
+	@Test
+	public void testCreateFolder() throws QblStorageException, IOException {
+		volume.createIndex(bucket, prefix);
+		BoxNavigation nav = volume.navigate();
+		File file = new File(testFileName);
+		BoxFolder boxFolder = nav.createFolder("foobdir");
+		nav.commit();
+		BoxNavigation folder = nav.navigate(boxFolder);
+		assertNotNull(folder);
+		folder.upload("foobar", file);
+		folder.commit();
+		BoxNavigation folder_new = nav.navigate(boxFolder);
+		InputStream dlStream = folder_new.download("foobar");
+		assertNotNull("Download stream is null", dlStream);
+		byte[] dl = IOUtils.toByteArray(dlStream);
+		assertThat(dl, is(Files.readAllBytes(file.toPath())));
+		BoxNavigation nav_new = volume.navigate();
+		List<BoxFolder> folders = nav_new.listFolders();
+		assertThat(folders.size(), is(1));
+		assertThat(boxFolder, equalTo(folders.get(0)));
 	}
 
 }

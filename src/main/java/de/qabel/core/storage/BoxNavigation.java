@@ -10,15 +10,17 @@ public interface BoxNavigation {
 
 	void commit() throws QblStorageException;
 
-	BoxNavigation navigate(BoxFolder target);
+	BoxNavigation navigate(BoxFolder target) throws QblStorageException;
 	BoxNavigation navigate(BoxExternal target);
 
 	List<BoxFile> listFiles() throws QblStorageException;
-	List<BoxFolder> listFolder() throws QblStorageException;
+	List<BoxFolder> listFolders() throws QblStorageException;
 	List<BoxExternal> listExternals() throws QblStorageException;
 
 	BoxFile upload(String name, File file) throws QblStorageException;
 	InputStream download(String name) throws QblStorageException;
+
+	BoxFolder createFolder(String name) throws QblStorageException;
 
 	void delete(BoxFile file) throws QblStorageException;
 	void delete(BoxFolder folder) throws QblStorageException;

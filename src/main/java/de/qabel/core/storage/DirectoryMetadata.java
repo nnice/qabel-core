@@ -93,6 +93,7 @@ class DirectoryMetadata {
 		try {
 			Class.forName(JDBC_CLASS_NAME);
 			connection = DriverManager.getConnection(JDBC_PREFIX + path.toAbsolutePath().toString());
+			connection.setAutoCommit(true);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException("Cannot load JDBC class!", e);
 		} catch (SQLException e) {
@@ -113,6 +114,7 @@ class DirectoryMetadata {
 		try {
 			Class.forName(JDBC_CLASS_NAME);
 			connection = DriverManager.getConnection(JDBC_PREFIX + path.toAbsolutePath().toString());
+			connection.setAutoCommit(true);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException("Cannot load JDBC class!", e);
 		} catch (SQLException e) {
