@@ -22,6 +22,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.meanbean.util.AssertionUtils.fail;
 
 public abstract class BoxVolumeTest {
 	private static final Logger logger = LoggerFactory.getLogger(BoxVolumeTest.class.getName());
@@ -68,16 +69,30 @@ public abstract class BoxVolumeTest {
 
 	@Test
 	public void testUploadFile() throws QblStorageException, IOException {
+		uploadFileToIndex();
+	}
+
+	@Test(expected = QblStorageNotFound.class)
+	public void testDeleteFile() throws QblStorageException, IOException {
+		BoxNavigation nav = uploadFileToIndex();
+		BoxFile boxFile = nav.listFiles().get(0);
+		nav.delete(boxFile);
+		nav.commit();
+		nav.download(boxFile);
+	}
+
+	private BoxNavigation uploadFileToIndex() throws QblStorageException, IOException {
 		volume.createIndex(bucket, prefix);
 		BoxNavigation nav = volume.navigate();
 		File file = new File(testFileName);
 		nav.upload("foobar", file);
 		nav.commit();
 		BoxNavigation nav_new = volume.navigate();
-		InputStream dlStream = nav_new.download("foobar");
+		InputStream dlStream = nav_new.download(nav_new.listFiles().get(0));
 		assertNotNull("Download stream is null", dlStream);
 		byte[] dl = IOUtils.toByteArray(dlStream);
 		assertThat(dl, is(Files.readAllBytes(file.toPath())));
+		return nav_new;
 	}
 
 	@Test
@@ -87,19 +102,70 @@ public abstract class BoxVolumeTest {
 		File file = new File(testFileName);
 		BoxFolder boxFolder = nav.createFolder("foobdir");
 		nav.commit();
+
 		BoxNavigation folder = nav.navigate(boxFolder);
 		assertNotNull(folder);
 		folder.upload("foobar", file);
 		folder.commit();
+
 		BoxNavigation folder_new = nav.navigate(boxFolder);
-		InputStream dlStream = folder_new.download("foobar");
+		InputStream dlStream = folder_new.download(folder_new.listFiles().get(0));
 		assertNotNull("Download stream is null", dlStream);
 		byte[] dl = IOUtils.toByteArray(dlStream);
 		assertThat(dl, is(Files.readAllBytes(file.toPath())));
+
 		BoxNavigation nav_new = volume.navigate();
 		List<BoxFolder> folders = nav_new.listFolders();
 		assertThat(folders.size(), is(1));
 		assertThat(boxFolder, equalTo(folders.get(0)));
+	}
+
+	@Test
+	public void testDeleteFolder() throws QblStorageException, IOException {
+		volume.createIndex(bucket, prefix);
+		BoxNavigation nav = volume.navigate();
+		File file = new File(testFileName);
+		BoxFolder boxFolder = nav.createFolder("foobdir");
+		nav.commit();
+
+		BoxNavigation folder = nav.navigate(boxFolder);
+		assertNotNull(folder);
+		folder.upload("foobar", file);
+		BoxFolder subfolder = folder.createFolder("subfolder");
+		folder.commit();
+
+		BoxNavigation folder_new = nav.navigate(boxFolder);
+		BoxFile boxFile = folder_new.listFiles().get(0);
+		InputStream dlStream = folder_new.download(boxFile);
+		assertNotNull("Download stream is null", dlStream);
+		byte[] dl = IOUtils.toByteArray(dlStream);
+		assertThat(dl, is(Files.readAllBytes(file.toPath())));
+
+		BoxNavigation nav_new = volume.navigate();
+		List<BoxFolder> folders = nav_new.listFolders();
+		assertThat(folders.size(), is(1));
+		assertThat(boxFolder, equalTo(folders.get(0)));
+
+		nav.delete(boxFolder);
+		nav.commit();
+		BoxNavigation nav_after = volume.navigate();
+		assertThat(nav_after.listFolders().isEmpty(), is(true));
+		checkDeleted(boxFolder, subfolder, boxFile, nav_after);
+	}
+
+	private void checkDeleted(BoxFolder boxFolder, BoxFolder subfolder, BoxFile boxFile, BoxNavigation nav_after) throws QblStorageException {
+		try {
+			nav_after.download(boxFile);
+			fail("Could download file in deleted folder");
+		} catch (QblStorageNotFound e) { }
+		try {
+			nav_after.navigate(boxFolder);
+			fail("Could navigate to deleted folder");
+		} catch (QblStorageNotFound e) { }
+		try {
+			nav_after.navigate(subfolder);
+			fail("Could navigate to deleted subfolder");
+		} catch (QblStorageNotFound e) { }
 	}
 
 }

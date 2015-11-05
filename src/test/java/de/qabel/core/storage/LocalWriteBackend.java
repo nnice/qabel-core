@@ -37,6 +37,7 @@ class LocalWriteBackend extends StorageWriteBackend {
 	@Override
 	void delete(String name) throws QblStorageException {
 		Path file = root.resolve(name);
+		logger.info("Deleting file path " + file.toString());
 		try {
 			Files.delete(file);
 		} catch (IOException e) {

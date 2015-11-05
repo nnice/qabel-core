@@ -5,6 +5,8 @@ import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
 import de.qabel.core.exceptions.QblStorageNotFound;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -16,6 +18,8 @@ import java.util.List;
 import java.util.UUID;
 
 public abstract class AbstractNavigation implements BoxNavigation {
+
+	private static final Logger logger = LoggerFactory.getLogger(AbstractNavigation.class.getName());
 
 	DirectoryMetadata dm;
 	QblECKeyPair keyPair;
@@ -99,8 +103,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 	}
 
 	@Override
-	public InputStream download(String name) throws QblStorageException {
-		BoxFile boxFile = dm.getFile(name);
+	public InputStream download(BoxFile boxFile) throws QblStorageException {
 		InputStream download = readBackend.download(boxFile.block);
 		File temp;
 		SecretKey key = new SecretKeySpec(boxFile.key, "AES");
@@ -131,12 +134,23 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	@Override
 	public void delete(BoxFile file) throws QblStorageException {
-
+		dm.deleteFile(file);
+		writeBackend.delete(file.block);
 	}
 
 	@Override
 	public void delete(BoxFolder folder) throws QblStorageException {
-
+		BoxNavigation folderNav = navigate(folder);
+		for (BoxFile file: folderNav.listFiles()) {
+			logger.info("Deleting file " + file.name);
+			folderNav.delete(file);
+		}
+		for (BoxFolder subFolder: folderNav.listFolders()) {
+			logger.info("Deleting folder " + folder.name);
+			folderNav.delete(subFolder);
+		}
+		dm.deleteFolder(folder);
+		writeBackend.delete(folder.ref);
 	}
 
 	@Override

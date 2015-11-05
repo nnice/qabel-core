@@ -2,7 +2,6 @@ package de.qabel.core.storage;
 
 import de.qabel.core.crypto.QblECKeyPair;
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
 
 import java.io.IOException;
 import java.nio.file.Files;
