@@ -2,6 +2,7 @@ package de.qabel.core.storage;
 
 import de.qabel.core.crypto.QblECPublicKey;
 import de.qabel.core.exceptions.QblStorageException;
+import de.qabel.core.exceptions.QblStorageNotFound;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTimeUtils;
@@ -16,16 +17,18 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 class DirectoryMetadata {
-	private final static Logger logger = LoggerFactory.getLogger(DirectoryMetadata.class.getName());
-	private final static String JDBC_CLASS_NAME = "org.sqlite.JDBC";
-	private final static String JDBC_PREFIX = "jdbc:sqlite:";
-	private Connection connection;
+	private static final Logger logger = LoggerFactory.getLogger(DirectoryMetadata.class.getName());
+	private static final String JDBC_CLASS_NAME = "org.sqlite.JDBC";
+	private static final String JDBC_PREFIX = "jdbc:sqlite:";
+	private final Connection connection;
+
+	private final String fileName;
 	byte[] deviceId;
 	String root;
 	Path path;
-
 
 	private final String initSql =
 			"CREATE TABLE meta ("
@@ -63,17 +66,20 @@ class DirectoryMetadata {
 					+ "INSERT INTO spec_version (version) VALUES(0)";
 
 
-	public DirectoryMetadata(Connection connection, String root, byte[] deviceId, Path path) {
+	public DirectoryMetadata(Connection connection, String root, byte[] deviceId,
+	                         Path path, String fileName) {
 		this.connection = connection;
 		this.root = root;
 		this.deviceId = deviceId;
 		this.path = path;
+		this.fileName = fileName;
 	}
 
-	public DirectoryMetadata(Connection connection, byte[] deviceId, Path path) {
+	public DirectoryMetadata(Connection connection, byte[] deviceId, Path path, String fileName) {
 		this.connection = connection;
 		this.deviceId = deviceId;
 		this.path = path;
+		this.fileName = fileName;
 	}
 
 	static DirectoryMetadata newDatabase(String root, byte[] deviceId) throws QblStorageException {
@@ -92,7 +98,8 @@ class DirectoryMetadata {
 		} catch (SQLException e) {
 			throw new RuntimeException("Cannot load in-memory database!", e);
 		}
-		DirectoryMetadata dm = new DirectoryMetadata(connection, root, deviceId, path);
+		DirectoryMetadata dm = new DirectoryMetadata(connection, root, deviceId, path,
+				UUID.randomUUID().toString());
 		try {
 			dm.initDatabase();
 		} catch (SQLException e) {
@@ -101,7 +108,7 @@ class DirectoryMetadata {
 		return dm;
 	}
 
-	static DirectoryMetadata openDatabase(Path path, byte[] deviceId) throws QblStorageException {
+	static DirectoryMetadata openDatabase(Path path, byte[] deviceId, String fileName) throws QblStorageException {
 		Connection connection;
 		try {
 			Class.forName(JDBC_CLASS_NAME);
@@ -111,8 +118,16 @@ class DirectoryMetadata {
 		} catch (SQLException e) {
 			throw new RuntimeException("Cannot load in-memory database!", e);
 		}
-		DirectoryMetadata dm = new DirectoryMetadata(connection, deviceId, path);
+		DirectoryMetadata dm = new DirectoryMetadata(connection, deviceId, path, fileName);
 		return dm;
+	}
+
+	public Path getPath() {
+		return path;
+	}
+
+	public String getFileName() {
+		return fileName;
 	}
 
 	private void initDatabase() throws SQLException, QblStorageException {
@@ -391,5 +406,20 @@ class DirectoryMetadata {
 		}
 	}
 
+	public BoxFile getFile(String name) throws QblStorageException {
+		try (PreparedStatement statement = connection.prepareStatement(
+				"SELECT block, name, size, mtime, key FROM files WHERE name=?")) {
+			statement.setString(1, name);
+			try (ResultSet rs = statement.executeQuery()) {
+				if (rs.next()) {
+					return new BoxFile(rs.getString(1),
+							rs.getString(2), rs.getLong(3), rs.getLong(4), rs.getBytes(5));
+				}
+				throw new QblStorageNotFound("File not found");
+			}
+		} catch (SQLException e) {
+			throw new QblStorageException(e);
+		}
+	}
 }
 

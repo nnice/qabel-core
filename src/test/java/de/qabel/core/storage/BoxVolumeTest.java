@@ -1,11 +1,6 @@
 package de.qabel.core.storage;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import de.qabel.core.crypto.QblECKeyPair;
+import com.amazonaws.util.IOUtils;
 import de.qabel.core.exceptions.QblStorageException;
 import de.qabel.core.exceptions.QblStorageNotFound;
 import org.junit.After;
@@ -14,25 +9,25 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
-public class BoxVolumeTest {
-	private final static Logger logger = LoggerFactory.getLogger(BoxVolumeTest.class.getName());
+public abstract class BoxVolumeTest {
+	private static final Logger logger = LoggerFactory.getLogger(BoxVolumeTest.class.getName());
 
 	BoxVolume volume;
-	private byte[] deviceID;
-	private String bucket = "qabel";
+	byte[] deviceID;
+	final String bucket = "qabel";
 	String prefix = UUID.randomUUID().toString();
-	private BoxVolume localVolume;
 
 	@Before
 	public void setUp() throws IOException {
@@ -42,47 +37,45 @@ public class BoxVolumeTest {
 		bb.putLong(uuid.getLeastSignificantBits());
 		deviceID = bb.array();
 
-		DefaultAWSCredentialsProviderChain chain = new DefaultAWSCredentialsProviderChain();
-
-		volume = new BoxVolume(bucket,prefix, chain.getCredentials(), new QblECKeyPair(), deviceID);
-
-		Path tempFolder = Files.createTempDirectory("");
-
-		localVolume = new BoxVolume(new LocalReadBackend(tempFolder),
-				new LocalWriteBackend(tempFolder),
-				new QblECKeyPair(), deviceID);
+		setUpVolume();
 	}
+
+	abstract void setUpVolume() throws IOException;
 
 	@After
-	public void cleanUp() {
-		AmazonS3Client client = ((S3WriteBackend) volume.writeBackend).s3Client;
-		ObjectListing listing = client.listObjects(bucket, prefix);
-		List<DeleteObjectsRequest.KeyVersion> keys = new ArrayList<>();
-		for (S3ObjectSummary summary: listing.getObjectSummaries()) {
-			keys.add(new DeleteObjectsRequest.KeyVersion(summary.getKey()));
-		}
-		DeleteObjectsRequest deleteObjectsRequest = new DeleteObjectsRequest(bucket);
-		deleteObjectsRequest.setKeys(keys);
-		client.deleteObjects(deleteObjectsRequest);
+	public void cleanUp() throws IOException {
+		cleanVolume();
 	}
 
-
-	@Test
-	public void testShareManagement() {
-		fail("Not implemented");
-	}
+	protected abstract void cleanVolume() throws IOException;
 
 	@Test(expected = QblStorageNotFound.class)
 	public void testIndexNotFound() throws QblStorageException {
 		String root = volume.getRootRef();
 		assertThat(UUID.fromString(root), isA(UUID.class));
-		BoxNavigation nav = volume.navigate();
+		volume.navigate();
 	}
 
 	@Test
 	public void testCreateIndex() throws QblStorageException {
 		volume.createIndex(bucket, prefix);
 		BoxNavigation nav = volume.navigate();
+		assertThat(nav.listFiles().size(), is(0));
+	}
+
+	@Test
+	public void testUploadFile() throws QblStorageException, IOException {
+		volume.createIndex(bucket, prefix);
+		BoxNavigation nav = volume.navigate();
+		String testFileName = "src/test/java/de/qabel/core/crypto/testFile";
+		File file = new File(testFileName);
+		nav.upload("foobar", file);
+		nav.commit();
+		BoxNavigation nav_new = volume.navigate();
+		InputStream dlStream = nav_new.download("foobar");
+		assertNotNull("Download stream is null", dlStream);
+		byte[] dl = IOUtils.toByteArray(dlStream);
+		assertThat(dl, is(Files.readAllBytes(file.toPath())));
 	}
 
 }

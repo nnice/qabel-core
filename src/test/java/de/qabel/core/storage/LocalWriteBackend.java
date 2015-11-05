@@ -18,11 +18,12 @@ class LocalWriteBackend extends StorageWriteBackend {
 	}
 
 	@Override
-	void upload(String name, InputStream inputStream) throws QblStorageException {
+	long upload(String name, InputStream inputStream) throws QblStorageException {
 		Path file = root.resolve(name);
 		try {
 			OutputStream output = Files.newOutputStream(file);
 			output.write(IOUtils.toByteArray(inputStream));
+			return Files.getLastModifiedTime(file).toMillis();
 		} catch (IOException e) {
 			throw new QblStorageException(e);
 		}

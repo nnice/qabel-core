@@ -3,6 +3,7 @@ package de.qabel.core.storage;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectResult;
 import de.qabel.core.exceptions.QblStorageException;
 
 import java.io.InputStream;
@@ -21,9 +22,12 @@ class S3WriteBackend extends StorageWriteBackend {
 	}
 
 	@Override
-	void upload(String name, InputStream inputStream) throws QblStorageException {
+	long upload(String name, InputStream inputStream) throws QblStorageException {
 		try {
-			s3Client.putObject(bucket, prefix + '/' + name, inputStream, new ObjectMetadata());
+			String path = prefix + '/' + name;
+			s3Client.putObject(bucket, path, inputStream, new ObjectMetadata());
+			ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, path);
+			return objectMetadata.getLastModified().getTime();
 		} catch (RuntimeException e) {
 			throw new QblStorageException(e);
 		}

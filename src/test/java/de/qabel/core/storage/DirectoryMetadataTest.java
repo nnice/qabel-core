@@ -1,8 +1,6 @@
 package de.qabel.core.storage;
 
-import de.qabel.core.crypto.CryptoUtils;
 import de.qabel.core.crypto.QblECKeyPair;
-import de.qabel.core.crypto.QblECPublicKey;
 import de.qabel.core.exceptions.QblStorageException;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,6 +46,7 @@ public class DirectoryMetadataTest {
 		assertThat(file, equalTo(dm.listFiles().get(0)));
 		dm.deleteFile(file);
 		assertThat(dm.listFiles().size(), is(0));
+		assertThat(file, is(dm.getFile("name")));
 	}
 
 	@Test

@@ -49,7 +49,8 @@ public class BoxVolume {
 	}
 
 	public BoxNavigation navigate() throws QblStorageException {
-		InputStream indexDl = readBackend.download(getRootRef());
+		String rootRef = getRootRef();
+		InputStream indexDl = readBackend.download(rootRef);
 		Path tmp;
 		try {
 			byte[] encrypted = IOUtils.toByteArray(indexDl);
@@ -62,8 +63,8 @@ public class BoxVolume {
 		} catch (IOException | InvalidCipherTextException | InvalidKeyException e) {
 			throw new QblStorageException(e);
 		}
-		DirectoryMetadata dm = DirectoryMetadata.openDatabase(tmp, deviceId);
-		return new FolderNavigation(dm, keyPair, deviceId);
+		DirectoryMetadata dm = DirectoryMetadata.openDatabase(tmp, deviceId, rootRef);
+		return new IndexNavigation(dm, keyPair, deviceId, readBackend, writeBackend);
 	}
 
 	public String getRootRef() throws QblStorageException {
