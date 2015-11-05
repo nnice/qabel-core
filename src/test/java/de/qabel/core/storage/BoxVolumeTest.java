@@ -34,7 +34,7 @@ public abstract class BoxVolumeTest {
 	private final String testFileName = "src/test/java/de/qabel/core/crypto/testFile";
 
 	@Before
-	public void setUp() throws IOException {
+	public void setUp() throws IOException, QblStorageException {
 		UUID uuid = UUID.randomUUID();
 		ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
 		bb.putLong(uuid.getMostSignificantBits());
@@ -42,6 +42,8 @@ public abstract class BoxVolumeTest {
 		deviceID = bb.array();
 
 		setUpVolume();
+
+		volume.createIndex(bucket, prefix);
 	}
 
 	abstract void setUpVolume() throws IOException;
@@ -53,29 +55,19 @@ public abstract class BoxVolumeTest {
 
 	protected abstract void cleanVolume() throws IOException;
 
-	@Test(expected = QblStorageNotFound.class)
-	public void testIndexNotFound() throws QblStorageException {
-		String root = volume.getRootRef();
-		assertThat(UUID.fromString(root), isA(UUID.class));
-		volume.navigate();
-	}
-
 	@Test
 	public void testCreateIndex() throws QblStorageException {
-		volume.createIndex(bucket, prefix);
 		BoxNavigation nav = volume.navigate();
 		assertThat(nav.listFiles().size(), is(0));
 	}
 
 	@Test
 	public void testUploadFile() throws QblStorageException, IOException {
-		volume.createIndex(bucket, prefix);
 		uploadFile(volume.navigate());
 	}
 
 	@Test(expected = QblStorageNotFound.class)
 	public void testDeleteFile() throws QblStorageException, IOException {
-		volume.createIndex(bucket, prefix);
 		BoxNavigation nav = volume.navigate();
 		BoxFile boxFile = uploadFile(nav);
 		nav.delete(boxFile);
@@ -102,7 +94,6 @@ public abstract class BoxVolumeTest {
 
 	@Test
 	public void testCreateFolder() throws QblStorageException, IOException {
-		volume.createIndex(bucket, prefix);
 		BoxNavigation nav = volume.navigate();
 		BoxFolder boxFolder = nav.createFolder("foobdir");
 		nav.commit();
@@ -122,7 +113,6 @@ public abstract class BoxVolumeTest {
 
 	@Test
 	public void testDeleteFolder() throws QblStorageException, IOException {
-		volume.createIndex(bucket, prefix);
 		BoxNavigation nav = volume.navigate();
 		BoxFolder boxFolder = nav.createFolder("foobdir");
 		nav.commit();
