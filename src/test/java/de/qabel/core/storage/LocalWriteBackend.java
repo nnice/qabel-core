@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 
 class LocalWriteBackend extends StorageWriteBackend {
@@ -26,6 +27,7 @@ class LocalWriteBackend extends StorageWriteBackend {
 		Path file = root.resolve(name);
 		logger.info("Uploading file path " + file.toString());
 		try {
+			Files.createDirectories(root.resolve("blocks"));
 			OutputStream output = Files.newOutputStream(file);
 			output.write(IOUtils.toByteArray(inputStream));
 			return Files.getLastModifiedTime(file).toMillis();
@@ -40,6 +42,8 @@ class LocalWriteBackend extends StorageWriteBackend {
 		logger.info("Deleting file path " + file.toString());
 		try {
 			Files.delete(file);
+		} catch (NoSuchFileException e) {
+			// ignore this just like the S3 API
 		} catch (IOException e) {
 			throw new QblStorageException(e);
 		}

@@ -14,8 +14,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.InvalidKeyException;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public abstract class AbstractNavigation implements BoxNavigation {
 
@@ -28,6 +27,8 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	StorageReadBackend readBackend;
 	StorageWriteBackend writeBackend;
+
+	Set<String> deleteQueue = new HashSet<>();
 
 
 	AbstractNavigation(DirectoryMetadata dm, QblECKeyPair keyPair, byte[] deviceId,
@@ -42,10 +43,9 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	@Override
 	public BoxNavigation navigate(BoxFolder target) throws QblStorageException {
-		Path tmp;
 		try {
 			InputStream indexDl = readBackend.download(target.ref);
-			tmp = Files.createTempFile(null, null);
+			Path tmp = Files.createTempFile(null, null);
 			SecretKey key = makeKey(target.key);
 			if (cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(indexDl, tmp.toFile(), key)) {
 				DirectoryMetadata dm = DirectoryMetadata.openDatabase(tmp, deviceId, target.ref);
@@ -58,9 +58,21 @@ public abstract class AbstractNavigation implements BoxNavigation {
 		}
 	}
 
-	private SecretKey makeKey(byte[] key2) {
+	protected abstract DirectoryMetadata reloadMetadata() throws QblStorageException;
+
+	protected SecretKey makeKey(byte[] key2) {
 		return new SecretKeySpec(key2, "AES");
 	}
+
+	@Override
+	public void commit() throws QblStorageException {
+		commitDirectoryMetadata();
+		for (String ref: deleteQueue) {
+			writeBackend.delete(ref);
+		}
+	}
+
+	protected abstract void commitDirectoryMetadata() throws QblStorageException;
 
 	@Override
 	public BoxNavigation navigate(BoxExternal target) {
@@ -87,11 +99,11 @@ public abstract class AbstractNavigation implements BoxNavigation {
 		SecretKey key = cryptoUtils.generateSymmetricKey();
 		String block = UUID.randomUUID().toString();
 		BoxFile boxFile = new BoxFile(block, name, file.length(), 0l, key.getEncoded());
-		boxFile.mtime = uploadEncrypted(file, key, block);
+		boxFile.mtime = uploadEncrypted(file, key, "blocks/" + block);
 		// Overwrite = delete old file, upload new file
 		BoxFile oldFile = dm.getFile(name);
 		if (oldFile != null) {
-			writeBackend.delete(oldFile.block);
+			deleteQueue.add(oldFile.block);
 			dm.deleteFile(oldFile);
 		}
 		dm.insertFile(boxFile);
@@ -114,7 +126,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	@Override
 	public InputStream download(BoxFile boxFile) throws QblStorageException {
-		InputStream download = readBackend.download(boxFile.block);
+		InputStream download = readBackend.download("blocks/" + boxFile.block);
 		File temp;
 		SecretKey key = makeKey(boxFile.key);
 		try {
@@ -145,7 +157,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 	@Override
 	public void delete(BoxFile file) throws QblStorageException {
 		dm.deleteFile(file);
-		writeBackend.delete(file.block);
+		deleteQueue.add("blocks/" + file.block);
 	}
 
 	@Override
@@ -159,8 +171,9 @@ public abstract class AbstractNavigation implements BoxNavigation {
 			logger.info("Deleting folder " + folder.name);
 			folderNav.delete(subFolder);
 		}
+		folderNav.commit();
 		dm.deleteFolder(folder);
-		writeBackend.delete(folder.ref);
+		deleteQueue.add(folder.ref);
 	}
 
 	@Override
