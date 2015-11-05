@@ -46,9 +46,8 @@ class DirectoryMetadata {
 					+ " recipient BLOB NOT NULL,"
 					+ " type INTEGER NOT NULL );"
 					+ "CREATE TABLE files ("
-					+ " id INTEGER PRIMARY KEY,"
 					+ " block VARCHAR(255)NOT NULL,"
-					+ " name VARCHAR(255)NOT NULL,"
+					+ " name VARCHAR(255)NOT NULL PRIMARY KEY,"
 					+ " size LONG NOT NULL,"
 					+ " mtime LONG NOT NULL,"
 					+ " key BLOB NOT NULL );"
@@ -408,7 +407,7 @@ class DirectoryMetadata {
 		}
 	}
 
-	public BoxFile getFile(String name) throws QblStorageException {
+	BoxFile getFile(String name) throws QblStorageException {
 		try (PreparedStatement statement = connection.prepareStatement(
 				"SELECT block, name, size, mtime, key FROM files WHERE name=?")) {
 			statement.setString(1, name);
@@ -417,7 +416,7 @@ class DirectoryMetadata {
 					return new BoxFile(rs.getString(1),
 							rs.getString(2), rs.getLong(3), rs.getLong(4), rs.getBytes(5));
 				}
-				throw new QblStorageNotFound("File not found");
+				return null;
 			}
 		} catch (SQLException e) {
 			throw new QblStorageException(e);

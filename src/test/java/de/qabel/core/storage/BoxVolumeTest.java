@@ -144,4 +144,14 @@ public abstract class BoxVolumeTest {
 		} catch (QblStorageNotFound e) { }
 	}
 
+	@Test
+	public void testOverrideFile() throws QblStorageException, IOException {
+		BoxNavigation nav = volume.navigate();
+		uploadFile(nav);
+		nav.commit();
+		uploadFile(nav);
+		nav.commit();
+		assertThat(nav.listFiles().size(), is(1));
+	}
+
 }

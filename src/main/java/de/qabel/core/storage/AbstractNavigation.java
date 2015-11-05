@@ -88,6 +88,12 @@ public abstract class AbstractNavigation implements BoxNavigation {
 		String block = UUID.randomUUID().toString();
 		BoxFile boxFile = new BoxFile(block, name, file.length(), 0l, key.getEncoded());
 		boxFile.mtime = uploadEncrypted(file, key, block);
+		// Overwrite = delete old file, upload new file
+		BoxFile oldFile = dm.getFile(name);
+		if (oldFile != null) {
+			writeBackend.delete(oldFile.block);
+			dm.deleteFile(oldFile);
+		}
 		dm.insertFile(boxFile);
 		return boxFile;
 	}
