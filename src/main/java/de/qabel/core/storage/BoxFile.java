@@ -2,7 +2,7 @@ package de.qabel.core.storage;
 
 import java.util.Arrays;
 
-class BoxFile {
+public class BoxFile {
 	String block;
 	String name;
 	Long size;

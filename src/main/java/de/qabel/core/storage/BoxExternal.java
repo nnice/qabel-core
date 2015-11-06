@@ -4,7 +4,7 @@ import de.qabel.core.crypto.QblECPublicKey;
 
 import java.util.Arrays;
 
-class BoxExternal {
+public class BoxExternal {
 	String url;
 	String name;
 	QblECPublicKey owner;

@@ -2,7 +2,7 @@ package de.qabel.core.storage;
 
 import java.util.Arrays;
 
-class BoxFolder {
+public class BoxFolder {
 	String name;
 	byte[] key;
 	String ref;
