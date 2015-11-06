@@ -17,8 +17,11 @@ public class BoxVolumeS3Test extends BoxVolumeTest {
 	void setUpVolume() {
 		DefaultAWSCredentialsProviderChain chain = new DefaultAWSCredentialsProviderChain();
 
-		volume = new BoxVolume(bucket,prefix, chain.getCredentials(), new QblECKeyPair(), deviceID,
+		QblECKeyPair keyPair = new QblECKeyPair();
+		volume = new BoxVolume(bucket,prefix, chain.getCredentials(), keyPair, deviceID,
 			new File(System.getProperty("java.io.tmpdir")));
+		volume2 = new BoxVolume(bucket,prefix, chain.getCredentials(), keyPair, deviceID2,
+				new File(System.getProperty("java.io.tmpdir")));
 
 	}
 
