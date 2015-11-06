@@ -5,13 +5,11 @@ import de.qabel.core.exceptions.QblStorageException;
 import de.qabel.core.exceptions.QblStorageNameConflict;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.joda.time.DateTimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
@@ -29,7 +27,7 @@ class DirectoryMetadata {
 	private final String fileName;
 	byte[] deviceId;
 	String root;
-	Path path;
+	File path;
 
 	private static final int TYPE_FILE = 0;
 	private static final int TYPE_FOLDER = 1;
@@ -68,35 +66,38 @@ class DirectoryMetadata {
 					+ " key BLOB NOT NULL,"
 					+ " url TEXT NOT NULL );"
 					+ "INSERT INTO spec_version (version) VALUES(0)";
-
+	private File tempDir;
 
 	public DirectoryMetadata(Connection connection, String root, byte[] deviceId,
-	                         Path path, String fileName) {
+	                         File path, String fileName, File tempDir) {
 		this.connection = connection;
 		this.root = root;
 		this.deviceId = deviceId;
 		this.path = path;
 		this.fileName = fileName;
+		this.tempDir = tempDir;
 	}
 
-	public DirectoryMetadata(Connection connection, byte[] deviceId, Path path, String fileName) {
+	public DirectoryMetadata(Connection connection, byte[] deviceId, File path, String fileName,
+	                         File tempDir) {
 		this.connection = connection;
 		this.deviceId = deviceId;
 		this.path = path;
 		this.fileName = fileName;
+		this.tempDir = tempDir;
 	}
 
-	static DirectoryMetadata newDatabase(String root, byte[] deviceId) throws QblStorageException {
-		Path path;
+	static DirectoryMetadata newDatabase(String root, byte[] deviceId, File tempDir) throws QblStorageException {
+		File path;
 		try {
-			path = Files.createTempFile("", "");
+			path = File.createTempFile("dir", "db", tempDir);
 		} catch (IOException e) {
 			throw new QblStorageException(e);
 		}
 		Connection connection;
 		try {
 			Class.forName(JDBC_CLASS_NAME);
-			connection = DriverManager.getConnection(JDBC_PREFIX + path.toAbsolutePath().toString());
+			connection = DriverManager.getConnection(JDBC_PREFIX + path.getAbsolutePath());
 			connection.setAutoCommit(true);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException("Cannot load JDBC class!", e);
@@ -104,7 +105,7 @@ class DirectoryMetadata {
 			throw new RuntimeException("Cannot load in-memory database!", e);
 		}
 		DirectoryMetadata dm = new DirectoryMetadata(connection, root, deviceId, path,
-				UUID.randomUUID().toString());
+				UUID.randomUUID().toString(), tempDir);
 		try {
 			dm.initDatabase();
 		} catch (SQLException e) {
@@ -113,21 +114,21 @@ class DirectoryMetadata {
 		return dm;
 	}
 
-	static DirectoryMetadata openDatabase(Path path, byte[] deviceId, String fileName) throws QblStorageException {
+	static DirectoryMetadata openDatabase(File path, byte[] deviceId, String fileName, File tempDir) throws QblStorageException {
 		Connection connection;
 		try {
 			Class.forName(JDBC_CLASS_NAME);
-			connection = DriverManager.getConnection(JDBC_PREFIX + path.toAbsolutePath().toString());
+			connection = DriverManager.getConnection(JDBC_PREFIX + path.getAbsolutePath());
 			connection.setAutoCommit(true);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException("Cannot load JDBC class!", e);
 		} catch (SQLException e) {
 			throw new RuntimeException("Cannot load in-memory database!", e);
 		}
-		return new DirectoryMetadata(connection, deviceId, path, fileName);
+		return new DirectoryMetadata(connection, deviceId, path, fileName, tempDir);
 	}
 
-	public Path getPath() {
+	public File getPath() {
 		return path;
 	}
 
@@ -142,7 +143,7 @@ class DirectoryMetadata {
 		try (PreparedStatement statement = connection.prepareStatement(
 				"INSERT INTO version (version, time) VALUES (?, ?)")) {
 			statement.setBytes(1, initVersion());
-			statement.setLong(2, DateTimeUtils.currentTimeMillis());
+			statement.setLong(2, System.currentTimeMillis());
 			statement.executeUpdate();
 		}
 		setLastChangedBy();
@@ -226,7 +227,7 @@ class DirectoryMetadata {
 		} catch (NoSuchAlgorithmException e) {
 			throw new QblStorageException(e);
 		}
-		md.update(new byte[] {0, 0});
+		md.update(new byte[]{0, 0});
 		md.update(deviceId);
 		return md.digest();
 	}
@@ -254,13 +255,13 @@ class DirectoryMetadata {
 		} catch (NoSuchAlgorithmException e) {
 			throw new QblStorageException(e);
 		}
-		md.update(new byte[] {0, 1});
+		md.update(new byte[]{0, 1});
 		md.update(oldVersion);
 		md.update(deviceId);
 		try (PreparedStatement statement = connection.prepareStatement(
 				"INSERT INTO version (version, time) VALUES (?, ?)")) {
 			statement.setBytes(1, md.digest());
-			statement.setLong(2, DateTimeUtils.currentTimeMillis());
+			statement.setLong(2, System.currentTimeMillis());
 			if (statement.executeUpdate() != 1) {
 				throw new QblStorageException("Could not update version!");
 			}
@@ -324,6 +325,7 @@ class DirectoryMetadata {
 			throw new QblStorageException(e);
 		}
 	}
+
 	void insertFolder(BoxFolder folder) throws QblStorageException {
 		int type = isA(folder.name);
 		if ((type != TYPE_NONE) && (type != TYPE_FOLDER)) {
@@ -441,10 +443,10 @@ class DirectoryMetadata {
 	}
 
 	int isA(String name) throws QblStorageException {
-		String[] types = new String[] {"files", "folders", "externals"};
+		String[] types = {"files", "folders", "externals"};
 		for (int type = 0; type < 3; type++) {
 			try (PreparedStatement statement = connection.prepareStatement(
-					"SELECT name FROM "+ types[type] +" WHERE name=?")) {
+					"SELECT name FROM " + types[type] + " WHERE name=?")) {
 				statement.setString(1, name);
 				try (ResultSet rs = statement.executeQuery()) {
 					if (rs.next()) {
@@ -458,5 +460,10 @@ class DirectoryMetadata {
 		return TYPE_NONE;
 	}
 
+	public File getTempDir() {
+		return tempDir;
+
+
+	}
 }
 

@@ -13,8 +13,6 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.util.*;
 
@@ -49,10 +47,11 @@ public abstract class AbstractNavigation implements BoxNavigation {
 	public BoxNavigation navigate(BoxFolder target) throws QblStorageException {
 		try {
 			InputStream indexDl = readBackend.download(target.ref);
-			Path tmp = Files.createTempFile(null, null);
+			File tmp = File.createTempFile("dir", "db", dm.getTempDir());
 			SecretKey key = makeKey(target.key);
-			if (cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(indexDl, tmp.toFile(), key)) {
-				DirectoryMetadata dm = DirectoryMetadata.openDatabase(tmp, deviceId, target.ref);
+			if (cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(indexDl, tmp, key)) {
+				DirectoryMetadata dm = DirectoryMetadata.openDatabase(
+						tmp, deviceId, target.ref, this.dm.getTempDir());
 				return new FolderNavigation(dm, keyPair, target.key, deviceId, readBackend, writeBackend);
 			} else {
 				throw new QblStorageNotFound("Invalid key");
@@ -173,13 +172,13 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	protected long uploadEncrypted(File file, SecretKey key, String block) throws QblStorageException {
 		try {
-			Path tempFile = Files.createTempFile("", "");
-			OutputStream outputStream = Files.newOutputStream(tempFile);
+			File tempFile = File.createTempFile("upload", "up", dm.getTempDir());
+			OutputStream outputStream = new FileOutputStream(tempFile);
 			if (!cryptoUtils.encryptFileAuthenticatedSymmetric(file, outputStream, key)) {
 				throw new QblStorageException("Encryption failed");
 			}
 			outputStream.flush();
-			return writeBackend.upload(block, Files.newInputStream(tempFile));
+			return writeBackend.upload(block, new FileInputStream(tempFile));
 		} catch (IOException | InvalidKeyException e) {
 			throw new QblStorageException(e);
 		}
@@ -191,11 +190,11 @@ public abstract class AbstractNavigation implements BoxNavigation {
 		File temp;
 		SecretKey key = makeKey(boxFile.key);
 		try {
-			temp = Files.createTempFile("", "").toFile();
+			temp = File.createTempFile("upload", "down", dm.getTempDir());
 			if (!cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(download, temp, key)) {
 				throw new QblStorageException("Decryption failed");
 			}
-			return Files.newInputStream(temp.toPath());
+			return new FileInputStream(temp);
 		} catch (IOException | InvalidKeyException e) {
 			throw new QblStorageException(e);
 		}
@@ -203,7 +202,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	@Override
 	public BoxFolder createFolder(String name) throws QblStorageException {
-		DirectoryMetadata dm = DirectoryMetadata.newDatabase(null, deviceId);
+		DirectoryMetadata dm = DirectoryMetadata.newDatabase(null, deviceId, this.dm.getTempDir());
 		SecretKey secretKey = cryptoUtils.generateSymmetricKey();
 		BoxFolder folder = new BoxFolder(dm.getFileName(), name, secretKey.getEncoded());
 		this.dm.insertFolder(folder);

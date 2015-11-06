@@ -8,12 +8,7 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.*;
 import java.security.InvalidKeyException;
 
 public class IndexNavigation extends AbstractNavigation {
@@ -30,25 +25,25 @@ public class IndexNavigation extends AbstractNavigation {
 		// TODO: duplicate with BoxVoume.navigate()
 		String rootRef = dm.getFileName();
 		InputStream indexDl = readBackend.download(rootRef);
-		Path tmp;
+		File tmp;
 		try {
 			byte[] encrypted = IOUtils.toByteArray(indexDl);
 			DecryptedPlaintext plaintext = cryptoUtils.readBox(keyPair, encrypted);
-			tmp = Files.createTempFile(null, null);
+			tmp = File.createTempFile("dir", "db", dm.getTempDir());
 			logger.info("Using " + tmp.toString() + " for the metadata file");
-			OutputStream out = Files.newOutputStream(tmp);
+			OutputStream out = new FileOutputStream(tmp);
 			out.write(plaintext.getPlaintext());
 			out.close();
 		} catch (IOException | InvalidCipherTextException | InvalidKeyException e) {
 			throw new QblStorageException(e);
 		}
-		return DirectoryMetadata.openDatabase(tmp, deviceId, rootRef);
+		return DirectoryMetadata.openDatabase(tmp, deviceId, rootRef, dm.getTempDir());
 	}
 
 	@Override
 	protected void uploadDirectoryMetadata() throws QblStorageException {
 		try {
-			byte[] plaintext = Files.readAllBytes(dm.path);
+			byte[] plaintext = IOUtils.toByteArray(new FileInputStream(dm.path));
 			byte[] encrypted = cryptoUtils.createBox(keyPair, keyPair.getPub(), plaintext, 0);
 			writeBackend.upload(dm.getFileName(), new ByteArrayInputStream(encrypted));
 			logger.info("Uploading metadata file with name " + dm.getFileName());

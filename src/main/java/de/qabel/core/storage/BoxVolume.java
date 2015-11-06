@@ -10,13 +10,8 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -33,42 +28,46 @@ public class BoxVolume {
 	private QblECKeyPair keyPair;
 	private byte[] deviceId;
 	private CryptoUtils cryptoUtils;
+	private File tempDir;
 
 	public BoxVolume(String bucket, String prefix, AWSCredentials credentials,
-	                 QblECKeyPair keyPair, byte[] deviceId) {
+	                 QblECKeyPair keyPair, byte[] deviceId, File tempDir) {
 		this.keyPair = keyPair;
 		this.deviceId = deviceId;
 		readBackend = new S3ReadBackend(bucket, prefix);
 		writeBackend = new S3WriteBackend(credentials, bucket, prefix);
 		cryptoUtils = new CryptoUtils();
+		this.tempDir = tempDir;
+
 	}
 
 	public BoxVolume(StorageReadBackend readBackend, StorageWriteBackend writeBackend,
-	                 QblECKeyPair keyPair, byte[] deviceId) {
+	                 QblECKeyPair keyPair, byte[] deviceId, File tempDir) {
 		this.keyPair = keyPair;
 		this.deviceId = deviceId;
 		this.readBackend = readBackend;
 		this.writeBackend = writeBackend;
 		cryptoUtils = new CryptoUtils();
+		this.tempDir = tempDir;
 	}
 
 	public BoxNavigation navigate() throws QblStorageException {
 		String rootRef = getRootRef();
 		logger.info("Navigating to " + rootRef);
 		InputStream indexDl = readBackend.download(rootRef);
-		Path tmp;
+		File tmp;
 		try {
 			byte[] encrypted = IOUtils.toByteArray(indexDl);
 			DecryptedPlaintext plaintext = cryptoUtils.readBox(keyPair, encrypted);
 			// Should work fine for the small metafiles
-			tmp = Files.createTempFile(null, null);
-			OutputStream out = Files.newOutputStream(tmp);
+			tmp = File.createTempFile("dir", "db", tempDir);
+			OutputStream out = new FileOutputStream(tmp);
 			out.write(plaintext.getPlaintext());
 			out.close();
 		} catch (IOException | InvalidCipherTextException | InvalidKeyException e) {
 			throw new QblStorageException(e);
 		}
-		DirectoryMetadata dm = DirectoryMetadata.openDatabase(tmp, deviceId, rootRef);
+		DirectoryMetadata dm = DirectoryMetadata.openDatabase(tmp, deviceId, rootRef, tempDir);
 		return new IndexNavigation(dm, keyPair, deviceId, readBackend, writeBackend);
 	}
 
@@ -93,9 +92,9 @@ public class BoxVolume {
 
 	public void createIndex(String root) throws QblStorageException {
 		String rootRef = getRootRef();
-		DirectoryMetadata dm = DirectoryMetadata.newDatabase(root, deviceId);
+		DirectoryMetadata dm = DirectoryMetadata.newDatabase(root, deviceId, tempDir);
 		try {
-			byte[] plaintext = Files.readAllBytes(dm.path);
+			byte[] plaintext = IOUtils.toByteArray(new FileInputStream(dm.path));
 			byte[] encrypted = cryptoUtils.createBox(keyPair, keyPair.getPub(), plaintext, 0);
 			writeBackend.upload(rootRef, new ByteArrayInputStream(encrypted));
 		} catch (IOException e) {

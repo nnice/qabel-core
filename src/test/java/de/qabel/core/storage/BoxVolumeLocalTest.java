@@ -2,6 +2,7 @@ package de.qabel.core.storage;
 
 import org.apache.commons.io.FileUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,10 +17,10 @@ public class BoxVolumeLocalTest extends BoxVolumeTest {
 
 		volume = new BoxVolume(new LocalReadBackend(tempFolder),
 				new LocalWriteBackend(tempFolder),
-				keyPair, deviceID);
+				keyPair, deviceID, new File(System.getProperty("java.io.tmpdir")));
 		volume2 = new BoxVolume(new LocalReadBackend(tempFolder),
 				new LocalWriteBackend(tempFolder),
-				keyPair, deviceID2);
+				keyPair, deviceID2, new File(System.getProperty("java.io.tmpdir")));
 	}
 
 	@Override

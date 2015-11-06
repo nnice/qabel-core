@@ -1,6 +1,8 @@
 package de.qabel.core.storage;
 
+
 import com.amazonaws.util.IOUtils;
+import de.qabel.core.crypto.CryptoUtils;
 import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
 import de.qabel.core.exceptions.QblStorageNameConflict;
@@ -39,17 +41,9 @@ public abstract class BoxVolumeTest {
 
 	@Before
 	public void setUp() throws IOException, QblStorageException {
-		UUID uuid = UUID.randomUUID();
-		ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-		bb.putLong(uuid.getMostSignificantBits());
-		bb.putLong(uuid.getLeastSignificantBits());
-		deviceID = bb.array();
-
-		UUID uuid2 = UUID.randomUUID();
-		ByteBuffer bb2 = ByteBuffer.wrap(new byte[16]);
-		bb2.putLong(uuid2.getMostSignificantBits());
-		bb2.putLong(uuid2.getLeastSignificantBits());
-		deviceID2 = bb2.array();
+		CryptoUtils utils = new CryptoUtils();
+		deviceID = utils.getRandomBytes(16);
+		deviceID2 = utils.getRandomBytes(16);
 
 		keyPair = new QblECKeyPair();
 

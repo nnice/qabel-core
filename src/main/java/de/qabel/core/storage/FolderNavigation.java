@@ -8,10 +8,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.InvalidKeyException;
 
 public class FolderNavigation extends AbstractNavigation {
@@ -30,7 +29,7 @@ public class FolderNavigation extends AbstractNavigation {
 	protected void uploadDirectoryMetadata() throws QblStorageException {
 		logger.info("Uploading directory metadata");
 		SecretKey secretKey = new SecretKeySpec(key, "AES");
-		uploadEncrypted(dm.getPath().toFile(), secretKey, dm.getFileName());
+		uploadEncrypted(dm.getPath(), secretKey, dm.getFileName());
 	}
 
 	@Override
@@ -39,10 +38,10 @@ public class FolderNavigation extends AbstractNavigation {
 		// duplicate of navigate()
 		try {
 			InputStream indexDl = readBackend.download(dm.getFileName());
-			Path tmp = Files.createTempFile(null, null);
+			File tmp = File.createTempFile("dir", "db", dm.getTempDir());
 			SecretKey key = makeKey(this.key);
-			if (cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(indexDl, tmp.toFile(), key)) {
-				return DirectoryMetadata.openDatabase(tmp, deviceId, dm.getFileName());
+			if (cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(indexDl, tmp, key)) {
+				return DirectoryMetadata.openDatabase(tmp, deviceId, dm.getFileName(), dm.getTempDir());
 			} else {
 				throw new QblStorageNotFound("Invalid key");
 			}

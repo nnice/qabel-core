@@ -1,10 +1,13 @@
 package de.qabel.core.storage;
 
+import de.qabel.core.crypto.CryptoUtils;
 import de.qabel.core.crypto.QblECKeyPair;
+import de.qabel.core.crypto.QblECPublicKey;
 import de.qabel.core.exceptions.QblStorageException;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.UUID;
@@ -24,7 +27,8 @@ public class DirectoryMetadataTest {
 		bb.putLong(uuid.getMostSignificantBits());
 		bb.putLong(uuid.getLeastSignificantBits());
 
-		dm = DirectoryMetadata.newDatabase("https://localhost", bb.array());
+		dm = DirectoryMetadata.newDatabase("https://localhost", bb.array(),
+			new File(System.getProperty("java.io.tmpdir")));
 	}
 
 	@Test
@@ -40,12 +44,13 @@ public class DirectoryMetadataTest {
 
 	@Test
 	public void testFileOperations() throws QblStorageException {
-		BoxFile file = new BoxFile("block", "name", 0l, 0l, new byte[] {1,2,});
+		BoxFile file = new BoxFile("block", "name", 0L, 0L, new byte[] {1,2,});
 		dm.insertFile(file);
 		assertThat(dm.listFiles().size(), is(1));
 		assertThat(file, equalTo(dm.listFiles().get(0)));
 		dm.deleteFile(file);
 		assertThat(dm.listFiles().size(), is(0));
+		assertThat(file, is(dm.getFile("name")));
 	}
 
 	@Test
@@ -56,7 +61,7 @@ public class DirectoryMetadataTest {
 		assertThat(folder, equalTo(dm.listFolders().get(0)));
 		dm.deleteFolder(folder);
 		assertThat(dm.listFolders().size(), is(0));
-		assertThat(dm.path.toAbsolutePath().toString(), startsWith("/tmp"));
+		assertThat(dm.path.getAbsolutePath().toString(), startsWith("/tmp"));
 	}
 
 	@Test
