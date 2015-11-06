@@ -10,6 +10,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -18,6 +20,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 class S3ReadBackend extends StorageReadBackend {
+
+	private static final Logger logger = LoggerFactory.getLogger(S3ReadBackend.class.getName());
 
 	String root;
 	private final CloseableHttpClient httpclient;
@@ -36,9 +40,12 @@ class S3ReadBackend extends StorageReadBackend {
 
 		httpclient = HttpClients.custom()
 				.setConnectionManager(connManager).build();
+
+		logger.info("S3ReadBackend with root address set to " + root);
 	}
 
 	InputStream download(String name) throws QblStorageException {
+		logger.info("Downloading " + name);
 		URI uri;
 		try {
 			uri = new URI(this.root + '/' + name);

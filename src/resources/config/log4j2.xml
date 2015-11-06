@@ -12,7 +12,7 @@
     </Console>
   </Appenders>
   <Loggers>
-    <Root level="all" includeLocation="false">
+    <Root level="info" includeLocation="false">
       <AppenderRef ref="RandomAccessFile"/>
       <AppenderRef ref="Console"/>
     </Root>

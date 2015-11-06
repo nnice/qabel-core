@@ -3,6 +3,8 @@ package de.qabel.core.storage;
 import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
 import de.qabel.core.exceptions.QblStorageNotFound;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -13,6 +15,9 @@ import java.nio.file.Path;
 import java.security.InvalidKeyException;
 
 public class FolderNavigation extends AbstractNavigation {
+
+	private static final Logger logger = LoggerFactory.getLogger(FolderNavigation.class.getName());
+
 	private final byte[] key;
 
 	FolderNavigation(DirectoryMetadata dm, QblECKeyPair keyPair, byte[] key, byte[] deviceId,
@@ -23,12 +28,14 @@ public class FolderNavigation extends AbstractNavigation {
 
 	@Override
 	protected void uploadDirectoryMetadata() throws QblStorageException {
+		logger.info("Uploading directory metadata");
 		SecretKey secretKey = new SecretKeySpec(key, "AES");
 		uploadEncrypted(dm.getPath().toFile(), secretKey, dm.getFileName());
 	}
 
 	@Override
 	protected DirectoryMetadata reloadMetadata() throws QblStorageException {
+		logger.info("Reloading directory metadata");
 		// duplicate of navigate()
 		try {
 			InputStream indexDl = readBackend.download(dm.getFileName());
