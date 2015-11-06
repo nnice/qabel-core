@@ -2,7 +2,7 @@ package de.qabel.core.storage;
 
 import de.qabel.core.crypto.QblECPublicKey;
 import de.qabel.core.exceptions.QblStorageException;
-import de.qabel.core.exceptions.QblStorageNotFound;
+import de.qabel.core.exceptions.QblStorageNameConflict;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTimeUtils;
@@ -23,12 +23,17 @@ class DirectoryMetadata {
 	private static final Logger logger = LoggerFactory.getLogger(DirectoryMetadata.class.getName());
 	private static final String JDBC_CLASS_NAME = "org.sqlite.JDBC";
 	private static final String JDBC_PREFIX = "jdbc:sqlite:";
+	public static final int TYPE_NONE = -1;
 	private final Connection connection;
 
 	private final String fileName;
 	byte[] deviceId;
 	String root;
 	Path path;
+
+	private static final int TYPE_FILE = 0;
+	private static final int TYPE_FOLDER = 1;
+	private static final int TYPE_EXTERNAL = 2;
 
 	private final String initSql =
 			"CREATE TABLE meta ("
@@ -119,8 +124,7 @@ class DirectoryMetadata {
 		} catch (SQLException e) {
 			throw new RuntimeException("Cannot load in-memory database!", e);
 		}
-		DirectoryMetadata dm = new DirectoryMetadata(connection, deviceId, path, fileName);
-		return dm;
+		return new DirectoryMetadata(connection, deviceId, path, fileName);
 	}
 
 	public Path getPath() {
@@ -285,6 +289,10 @@ class DirectoryMetadata {
 
 
 	void insertFile(BoxFile file) throws QblStorageException {
+		int type = isA(file.name);
+		if ((type != TYPE_NONE) && (type != TYPE_FILE)) {
+			throw new QblStorageNameConflict(file.name);
+		}
 		try {
 			PreparedStatement st = connection.prepareStatement(
 					"INSERT INTO files (block, name, size, mtime, key) VALUES(?, ?, ?, ?, ?)");
@@ -317,6 +325,10 @@ class DirectoryMetadata {
 		}
 	}
 	void insertFolder(BoxFolder folder) throws QblStorageException {
+		int type = isA(folder.name);
+		if ((type != TYPE_NONE) && (type != TYPE_FOLDER)) {
+			throw new QblStorageNameConflict(folder.name);
+		}
 		try {
 			PreparedStatement st = connection.prepareStatement(
 					"INSERT INTO folders (ref, name, key) VALUES(?, ?, ?)");
@@ -362,6 +374,10 @@ class DirectoryMetadata {
 	}
 
 	void insertExternal(BoxExternal external) throws QblStorageException {
+		int type = isA(external.name);
+		if ((type != TYPE_NONE) && (type != TYPE_EXTERNAL)) {
+			throw new QblStorageNameConflict(external.name);
+		}
 		try {
 			PreparedStatement st = connection.prepareStatement(
 					"INSERT INTO externals (url, name, owner, key) VALUES(?, ?, ?, ?)");
@@ -423,5 +439,24 @@ class DirectoryMetadata {
 			throw new QblStorageException(e);
 		}
 	}
+
+	int isA(String name) throws QblStorageException {
+		String[] types = new String[] {"files", "folders", "externals"};
+		for (int type = 0; type < 3; type++) {
+			try (PreparedStatement statement = connection.prepareStatement(
+					"SELECT name FROM "+ types[type] +" WHERE name=?")) {
+				statement.setString(1, name);
+				try (ResultSet rs = statement.executeQuery()) {
+					if (rs.next()) {
+						return type;
+					}
+				}
+			} catch (SQLException e) {
+				throw new QblStorageException(e);
+			}
+		}
+		return TYPE_NONE;
+	}
+
 }
 

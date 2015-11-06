@@ -3,9 +3,11 @@ package de.qabel.core.storage;
 import com.amazonaws.util.IOUtils;
 import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
+import de.qabel.core.exceptions.QblStorageNameConflict;
 import de.qabel.core.exceptions.QblStorageNotFound;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +20,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.isA;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.meanbean.util.AssertionUtils.fail;
@@ -176,4 +176,49 @@ public abstract class BoxVolumeTest {
 		assertThat(nav.listFiles().size(), is(2));
 	}
 
+	@Test(expected = QblStorageNameConflict.class)
+	public void testFileNameConflict() throws QblStorageException {
+		BoxNavigation nav = volume.navigate();
+		nav.createFolder("foobar");
+		nav.upload("foobar", new File(testFileName));
+	}
+
+	@Test(expected = QblStorageNameConflict.class)
+	public void testFolderNameConflict() throws QblStorageException {
+		BoxNavigation nav = volume.navigate();
+		nav.upload("foobar", new File(testFileName));
+		nav.createFolder("foobar");
+	}
+
+	@Test
+	public void testNameConflictOnDifferentClients() throws QblStorageException, IOException {
+		BoxNavigation nav = volume.navigate();
+		BoxNavigation nav2 = volume2.navigate();
+		File file = new File(testFileName);
+		nav.upload("foobar", file);
+		nav2.createFolder("foobar");
+		nav2.commit();
+		nav.commit();
+		assertThat(nav.listFiles().size(), is(1));
+		assertThat(nav.listFolders().size(), is(1));
+		assertThat(nav.listFiles().get(0).name, startsWith("foobar_conflict"));
+	}
+
+	/**
+	 * Currently a folder with a name conflict just disappears and all is lost.
+	 */
+	@Test
+	@Ignore
+	public void testFolderNameConflictOnDifferentClients() throws QblStorageException, IOException {
+		BoxNavigation nav = volume.navigate();
+		BoxNavigation nav2 = volume2.navigate();
+		File file = new File(testFileName);
+		nav.createFolder("foobar");
+		nav2.upload("foobar", file);
+		nav2.commit();
+		nav.commit();
+		assertThat(nav.listFiles().size(), is(1));
+		assertThat(nav.listFolders().size(), is(1));
+		assertThat(nav.listFiles().get(0).name, startsWith("foobar_conflict"));
+	}
 }

@@ -3,6 +3,7 @@ package de.qabel.core.storage;
 import de.qabel.core.crypto.CryptoUtils;
 import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
+import de.qabel.core.exceptions.QblStorageNameConflict;
 import de.qabel.core.exceptions.QblStorageNotFound;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.NotImplementedException;
@@ -104,12 +105,19 @@ public abstract class AbstractNavigation implements BoxNavigation {
 		BoxFile local = update.updated;
 		BoxFile newFile = dm.getFile(local.name);
 		if (newFile == null) {
-			dm.insertFile(local);
+			try {
+				dm.insertFile(local);
+			} catch (QblStorageNameConflict e) {
+				// name clash with a folder or external
+				local.name = conflictName(local);
+				// try again until we get no name clash
+				handleConflict(update);
+			}
 		} else if (newFile.equals(update.old)) {
 			logger.info("No conflict for the file " + local.name);
 		} else {
 			logger.info("Inserting conflict marked file");
-			local.name = local.name + "_conflict_" + local.mtime.toString();
+			local.name = conflictName(local);
 			if (update.old != null) {
 				dm.deleteFile(update.old);
 			}
@@ -117,6 +125,10 @@ public abstract class AbstractNavigation implements BoxNavigation {
 				dm.insertFile(local);
 			}
 		}
+	}
+
+	private String conflictName(BoxFile local) {
+		return local.name + "_conflict_" + local.mtime.toString();
 	}
 
 	protected abstract void uploadDirectoryMetadata() throws QblStorageException;
