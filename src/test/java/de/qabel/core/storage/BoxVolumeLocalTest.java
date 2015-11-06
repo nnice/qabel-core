@@ -1,6 +1,5 @@
 package de.qabel.core.storage;
 
-import de.qabel.core.crypto.QblECKeyPair;
 import org.apache.commons.io.FileUtils;
 
 import java.io.IOException;
@@ -17,7 +16,10 @@ public class BoxVolumeLocalTest extends BoxVolumeTest {
 
 		volume = new BoxVolume(new LocalReadBackend(tempFolder),
 				new LocalWriteBackend(tempFolder),
-				new QblECKeyPair(), deviceID);
+				keyPair, deviceID);
+		volume2 = new BoxVolume(new LocalReadBackend(tempFolder),
+				new LocalWriteBackend(tempFolder),
+				keyPair, deviceID2);
 	}
 
 	@Override

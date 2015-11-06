@@ -2,9 +2,15 @@ package de.qabel.core.storage;
 
 import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
+import de.qabel.core.exceptions.QblStorageNotFound;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.InvalidKeyException;
 
 public class FolderNavigation extends AbstractNavigation {
 	private final byte[] key;
@@ -16,9 +22,25 @@ public class FolderNavigation extends AbstractNavigation {
 	}
 
 	@Override
-	public void commit() throws QblStorageException {
-		dm.commit();
+	protected void uploadDirectoryMetadata() throws QblStorageException {
 		SecretKey secretKey = new SecretKeySpec(key, "AES");
 		uploadEncrypted(dm.getPath().toFile(), secretKey, dm.getFileName());
+	}
+
+	@Override
+	protected DirectoryMetadata reloadMetadata() throws QblStorageException {
+		// duplicate of navigate()
+		try {
+			InputStream indexDl = readBackend.download(dm.getFileName());
+			Path tmp = Files.createTempFile(null, null);
+			SecretKey key = makeKey(this.key);
+			if (cryptoUtils.decryptFileAuthenticatedSymmetricAndValidateTag(indexDl, tmp.toFile(), key)) {
+				return DirectoryMetadata.openDatabase(tmp, deviceId, dm.getFileName());
+			} else {
+				throw new QblStorageNotFound("Invalid key");
+			}
+		} catch (IOException | InvalidKeyException e) {
+			throw new QblStorageException(e);
+		}
 	}
 }

@@ -6,7 +6,6 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import de.qabel.core.crypto.QblECKeyPair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +15,8 @@ public class BoxVolumeS3Test extends BoxVolumeTest {
 	void setUpVolume() {
 		DefaultAWSCredentialsProviderChain chain = new DefaultAWSCredentialsProviderChain();
 
-		volume = new BoxVolume(bucket,prefix, chain.getCredentials(), new QblECKeyPair(), deviceID);
+		volume = new BoxVolume(bucket,prefix, chain.getCredentials(), keyPair, deviceID);
+		volume2 = new BoxVolume(bucket,prefix, chain.getCredentials(), keyPair, deviceID2);
 
 	}
 

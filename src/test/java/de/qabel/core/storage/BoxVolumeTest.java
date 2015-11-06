@@ -1,6 +1,7 @@
 package de.qabel.core.storage;
 
 import com.amazonaws.util.IOUtils;
+import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
 import de.qabel.core.exceptions.QblStorageNotFound;
 import org.junit.After;
@@ -28,9 +29,12 @@ public abstract class BoxVolumeTest {
 	private static final Logger logger = LoggerFactory.getLogger(BoxVolumeTest.class.getName());
 
 	BoxVolume volume;
+	BoxVolume volume2;
 	byte[] deviceID;
+	byte[] deviceID2;
+	QblECKeyPair keyPair;
 	final String bucket = "qabel";
-	String prefix = UUID.randomUUID().toString();
+	final String prefix = UUID.randomUUID().toString();
 	private final String testFileName = "src/test/java/de/qabel/core/crypto/testFile";
 
 	@Before
@@ -40,6 +44,14 @@ public abstract class BoxVolumeTest {
 		bb.putLong(uuid.getMostSignificantBits());
 		bb.putLong(uuid.getLeastSignificantBits());
 		deviceID = bb.array();
+
+		UUID uuid2 = UUID.randomUUID();
+		ByteBuffer bb2 = ByteBuffer.wrap(new byte[16]);
+		bb2.putLong(uuid2.getMostSignificantBits());
+		bb2.putLong(uuid2.getLeastSignificantBits());
+		deviceID2 = bb2.array();
+
+		keyPair = new QblECKeyPair();
 
 		setUpVolume();
 
@@ -84,8 +96,8 @@ public abstract class BoxVolumeTest {
 		return boxFile;
 	}
 
-	private void checkFile(BoxFile boxFile, BoxNavigation nav_new) throws QblStorageException, IOException {
-		InputStream dlStream = nav_new.download(boxFile);
+	private void checkFile(BoxFile boxFile, BoxNavigation nav) throws QblStorageException, IOException {
+		InputStream dlStream = nav.download(boxFile);
 		assertNotNull("Download stream is null", dlStream);
 		byte[] dl = IOUtils.toByteArray(dlStream);
 		File file = new File(testFileName);
@@ -148,10 +160,20 @@ public abstract class BoxVolumeTest {
 	public void testOverrideFile() throws QblStorageException, IOException {
 		BoxNavigation nav = volume.navigate();
 		uploadFile(nav);
-		nav.commit();
 		uploadFile(nav);
-		nav.commit();
 		assertThat(nav.listFiles().size(), is(1));
+	}
+
+	@Test
+	public void testConflictFileUpdate() throws QblStorageException, IOException {
+		BoxNavigation nav = volume.navigate();
+		BoxNavigation nav2 = volume2.navigate();
+		File file = new File(testFileName);
+		nav.upload("foobar", file);
+		nav2.upload("foobar", file);
+		nav2.commit();
+		nav.commit();
+		assertThat(nav.listFiles().size(), is(2));
 	}
 
 }

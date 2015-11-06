@@ -7,6 +7,8 @@ import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -22,6 +24,8 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public class BoxVolume {
+
+	private static final Logger logger = LoggerFactory.getLogger(BoxVolume.class.getName());
 
 	StorageReadBackend readBackend;
 	StorageWriteBackend writeBackend;
@@ -50,6 +54,7 @@ public class BoxVolume {
 
 	public BoxNavigation navigate() throws QblStorageException {
 		String rootRef = getRootRef();
+		logger.info("Navigating to " + rootRef);
 		InputStream indexDl = readBackend.download(rootRef);
 		Path tmp;
 		try {

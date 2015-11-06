@@ -4,7 +4,8 @@ import de.qabel.core.crypto.CryptoUtils;
 import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
 import de.qabel.core.exceptions.QblStorageNotFound;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,14 +22,16 @@ public abstract class AbstractNavigation implements BoxNavigation {
 	private static final Logger logger = LoggerFactory.getLogger(AbstractNavigation.class.getName());
 
 	DirectoryMetadata dm;
-	QblECKeyPair keyPair;
-	byte[] deviceId;
-	CryptoUtils cryptoUtils;
+	final QblECKeyPair keyPair;
+	final byte[] deviceId;
+	final CryptoUtils cryptoUtils;
 
-	StorageReadBackend readBackend;
-	StorageWriteBackend writeBackend;
+	final StorageReadBackend readBackend;
+	final StorageWriteBackend writeBackend;
 
-	Set<String> deleteQueue = new HashSet<>();
+	private final Set<String> deleteQueue = new HashSet<>();
+	private final Set<FileUpdate> updatedFiles = new HashSet<>();
+
 
 
 	AbstractNavigation(DirectoryMetadata dm, QblECKeyPair keyPair, byte[] deviceId,
@@ -66,17 +69,61 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	@Override
 	public void commit() throws QblStorageException {
-		commitDirectoryMetadata();
+		byte[] version = dm.getVersion();
+		dm.commit();
+		logger.info("Committing version "+ Hex.encodeHexString(dm.getVersion())
+				+ " with device id " + Hex.encodeHexString(dm.deviceId));
+		DirectoryMetadata updatedDM = null;
+		try {
+			updatedDM = reloadMetadata();
+			logger.info("Remote version is " + Hex.encodeHexString(updatedDM.getVersion()));
+		} catch (QblStorageNotFound e) {
+			logger.info("Could not reload metadata");
+		}
+		// the remote version has changed from the _old_ version
+		if ((updatedDM != null) && (!Arrays.equals(version, updatedDM.getVersion()))) {
+			logger.info("Conflicting version");
+			// ignore our local directory metadata
+			// all changes that are not inserted in the new dm are _lost_!
+			dm = updatedDM;
+			for (FileUpdate update: updatedFiles) {
+				handleConflict(update);
+			}
+			dm.commit();
+		}
+		uploadDirectoryMetadata();
 		for (String ref: deleteQueue) {
 			writeBackend.delete(ref);
 		}
+		// TODO: make a test fail without these
+		deleteQueue.clear();
+		updatedFiles.clear();
 	}
 
-	protected abstract void commitDirectoryMetadata() throws QblStorageException;
+	private void handleConflict(FileUpdate update) throws QblStorageException {
+		BoxFile local = update.updated;
+		BoxFile newFile = dm.getFile(local.name);
+		if (newFile == null) {
+			dm.insertFile(local);
+		} else if (newFile.equals(update.old)) {
+			logger.info("No conflict for the file " + local.name);
+		} else {
+			logger.info("Inserting conflict marked file");
+			local.name = local.name + "_conflict_" + local.mtime.toString();
+			if (update.old != null) {
+				dm.deleteFile(update.old);
+			}
+			if (dm.getFile(local.name) == null) {
+				dm.insertFile(local);
+			}
+		}
+	}
+
+	protected abstract void uploadDirectoryMetadata() throws QblStorageException;
 
 	@Override
 	public BoxNavigation navigate(BoxExternal target) {
-		return null;
+		throw new NotImplementedException("Externals are not yet implemented!");
 	}
 
 	@Override
@@ -91,14 +138,15 @@ public abstract class AbstractNavigation implements BoxNavigation {
 
 	@Override
 	public List<BoxExternal> listExternals() throws QblStorageException {
-		return dm.listExternals();
+		//return dm.listExternals();
+		throw new NotImplementedException("Externals are not yet implemented!");
 	}
 
 	@Override
 	public BoxFile upload(String name, File file) throws QblStorageException {
 		SecretKey key = cryptoUtils.generateSymmetricKey();
 		String block = UUID.randomUUID().toString();
-		BoxFile boxFile = new BoxFile(block, name, file.length(), 0l, key.getEncoded());
+		BoxFile boxFile = new BoxFile(block, name, file.length(), 0L, key.getEncoded());
 		boxFile.mtime = uploadEncrypted(file, key, "blocks/" + block);
 		// Overwrite = delete old file, upload new file
 		BoxFile oldFile = dm.getFile(name);
@@ -106,6 +154,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 			deleteQueue.add(oldFile.block);
 			dm.deleteFile(oldFile);
 		}
+		updatedFiles.add(new FileUpdate(oldFile, boxFile));
 		dm.insertFile(boxFile);
 		return boxFile;
 	}
@@ -135,9 +184,7 @@ public abstract class AbstractNavigation implements BoxNavigation {
 				throw new QblStorageException("Decryption failed");
 			}
 			return Files.newInputStream(temp.toPath());
-		} catch (IOException e) {
-			throw new QblStorageException(e);
-		} catch (InvalidKeyException e) {
+		} catch (IOException | InvalidKeyException e) {
 			throw new QblStorageException(e);
 		}
 	}
@@ -179,5 +226,22 @@ public abstract class AbstractNavigation implements BoxNavigation {
 	@Override
 	public void delete(BoxExternal external) throws QblStorageException {
 
+	}
+
+	private static class FileUpdate {
+		final BoxFile old;
+		final BoxFile updated;
+
+		public FileUpdate(BoxFile old, BoxFile updated) {
+			this.old = old;
+			this.updated = updated;
+		}
+
+		@Override
+		public int hashCode() {
+			int result = old != null ? old.hashCode() : 0;
+			result = 31 * result + (updated != null ? updated.hashCode() : 0);
+			return result;
+		}
 	}
 }
