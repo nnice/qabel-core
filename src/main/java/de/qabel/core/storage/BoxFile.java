@@ -3,11 +3,11 @@ package de.qabel.core.storage;
 import java.util.Arrays;
 
 public class BoxFile {
-	String block;
-	String name;
-	Long size;
-	Long mtime;
-	byte[] key;
+	public String block;
+	public String name;
+	public Long size;
+	public Long mtime;
+	public byte[] key;
 
 	@Override
 	public boolean equals(Object o) {

@@ -3,9 +3,9 @@ package de.qabel.core.storage;
 import java.util.Arrays;
 
 public class BoxFolder {
-	String name;
-	byte[] key;
-	String ref;
+	public String name;
+	public byte[] key;
+	public String ref;
 
 	public BoxFolder(String ref, String name, byte[] key) {
 		this.name = name;
