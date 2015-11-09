@@ -71,12 +71,12 @@ public abstract class AbstractNavigation implements BoxNavigation {
 	public void commit() throws QblStorageException {
 		byte[] version = dm.getVersion();
 		dm.commit();
-		logger.info("Committing version "+ Hex.encodeHexString(dm.getVersion())
-				+ " with device id " + Hex.encodeHexString(dm.deviceId));
+		logger.info("Committing version "+ new String(Hex.encodeHex(dm.getVersion()))
+				+ " with device id " + new String(Hex.encodeHex(dm.deviceId)));
 		DirectoryMetadata updatedDM = null;
 		try {
 			updatedDM = reloadMetadata();
-			logger.info("Remote version is " + Hex.encodeHexString(updatedDM.getVersion()));
+			logger.info("Remote version is " + new String(Hex.encodeHex(updatedDM.getVersion())));
 		} catch (QblStorageNotFound e) {
 			logger.info("Could not reload metadata");
 		}

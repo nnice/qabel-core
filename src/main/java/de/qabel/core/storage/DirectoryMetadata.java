@@ -19,7 +19,8 @@ import java.util.UUID;
 
 class DirectoryMetadata {
 	private static final Logger logger = LoggerFactory.getLogger(DirectoryMetadata.class.getName());
-	private static final String JDBC_CLASS_NAME = "org.sqlite.JDBC";
+	//private static final String JDBC_CLASS_NAME = "org.sqlite.JDBC";
+	private static final String JDBC_CLASS_NAME = "org.sqldroid.SQLDroidDriver";
 	private static final String JDBC_PREFIX = "jdbc:sqlite:";
 	public static final int TYPE_NONE = -1;
 	private final Connection connection;
@@ -33,39 +34,40 @@ class DirectoryMetadata {
 	private static final int TYPE_FOLDER = 1;
 	private static final int TYPE_EXTERNAL = 2;
 
-	private final String initSql =
-			"CREATE TABLE meta ("
-					+ " name VARCHAR(24) PRIMARY KEY,"
-					+ " value TEXT );"
-					+ "CREATE TABLE spec_version ("
-					+ " version INTEGER PRIMARY KEY );"
-					+ "CREATE TABLE version ("
-					+ " id INTEGER PRIMARY KEY,"
-					+ " version BLOB NOT NULL,"
-					+ " time LONG NOT NULL );"
-					+ "CREATE TABLE shares ("
-					+ " id INTEGER PRIMARY KEY,"
-					+ " ref VARCHAR(255)NOT NULL,"
-					+ " recipient BLOB NOT NULL,"
-					+ " type INTEGER NOT NULL );"
-					+ "CREATE TABLE files ("
-					+ " block VARCHAR(255)NOT NULL,"
-					+ " name VARCHAR(255)NOT NULL PRIMARY KEY,"
-					+ " size LONG NOT NULL,"
-					+ " mtime LONG NOT NULL,"
-					+ " key BLOB NOT NULL );"
-					+ "CREATE TABLE folders ("
-					+ " id INTEGER PRIMARY KEY,"
-					+ " ref VARCHAR(255)NOT NULL,"
-					+ " name VARCHAR(255)NOT NULL,"
-					+ " key BLOB NOT NULL );"
-					+ "CREATE TABLE externals ("
-					+ " id INTEGER PRIMARY KEY,"
-					+ " owner BLOB NOT NULL,"
-					+ " name VARCHAR(255)NOT NULL,"
-					+ " key BLOB NOT NULL,"
-					+ " url TEXT NOT NULL );"
-					+ "INSERT INTO spec_version (version) VALUES(0)";
+    private final String[] initSql = {
+			"CREATE TABLE meta (" +
+			" name VARCHAR(24) PRIMARY KEY," +
+			" value TEXT )",
+			"CREATE TABLE spec_version (" +
+			" version INTEGER PRIMARY KEY )",
+			"CREATE TABLE version (" +
+			" id INTEGER PRIMARY KEY," +
+			" version BLOB NOT NULL," +
+			" time LONG NOT NULL )",
+			"CREATE TABLE shares (" +
+			" id INTEGER PRIMARY KEY," +
+			" ref VARCHAR(255)NOT NULL," +
+			" recipient BLOB NOT NULL," +
+			" type INTEGER NOT NULL )",
+			"CREATE TABLE files (" +
+			" block VARCHAR(255)NOT NULL," +
+			" name VARCHAR(255)NOT NULL PRIMARY KEY," +
+			" size LONG NOT NULL," +
+			" mtime LONG NOT NULL," +
+			" key BLOB NOT NULL )",
+			"CREATE TABLE folders (" +
+			" id INTEGER PRIMARY KEY," +
+			" ref VARCHAR(255)NOT NULL," +
+			" name VARCHAR(255)NOT NULL," +
+			" key BLOB NOT NULL )",
+			"CREATE TABLE externals (" +
+			" id INTEGER PRIMARY KEY," +
+			" owner BLOB NOT NULL," +
+			" name VARCHAR(255)NOT NULL," +
+			" key BLOB NOT NULL," +
+			" url TEXT NOT NULL )",
+			"INSERT INTO spec_version (version) VALUES(0)"
+	};
 	private File tempDir;
 
 	public DirectoryMetadata(Connection connection, String root, byte[] deviceId,
@@ -137,8 +139,10 @@ class DirectoryMetadata {
 	}
 
 	private void initDatabase() throws SQLException, QblStorageException {
-		try (Statement statement = connection.createStatement()) {
-			statement.executeUpdate(initSql);
+		for (String q: initSql) {
+			try (Statement statement = connection.createStatement()) {
+				statement.executeUpdate(q);
+			}
 		}
 		try (PreparedStatement statement = connection.prepareStatement(
 				"INSERT INTO version (version, time) VALUES (?, ?)")) {
@@ -195,7 +199,7 @@ class DirectoryMetadata {
 	void setLastChangedBy() throws SQLException {
 		try (PreparedStatement statement = connection.prepareStatement(
 				"INSERT OR REPLACE INTO meta (name, value) VALUES ('last_change_by', ?)")) {
-			String x = Hex.encodeHexString(deviceId);
+			String x = new String(Hex.encodeHex(deviceId));
 			statement.setString(1, x);
 			statement.executeUpdate();
 		}
