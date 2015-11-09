@@ -30,18 +30,18 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.crypto.InvalidCipherTextException;
-import org.bouncycastle.crypto.engines.AESEngine;
-import org.bouncycastle.crypto.modes.GCMBlockCipher;
-import org.bouncycastle.crypto.params.AEADParameters;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.crypto.engines.AESEngine;
+import org.spongycastle.crypto.modes.GCMBlockCipher;
+import org.spongycastle.crypto.params.AEADParameters;
+import org.spongycastle.crypto.params.KeyParameter;
+import org.spongycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.*;
 
 public class CryptoUtils {
 
 	// https://github.com/Qabel/qabel-doc/wiki/Components-Crypto
-	private final static String CRYPTOGRAPHIC_PROVIDER = "BC"; // BouncyCastle
+	private final static String CRYPTOGRAPHIC_PROVIDER = "SC"; // SpongyCastle
 	private final static String SYMM_KEY_ALGORITHM = "AES";
 	private final static String SYMM_GCM_TRANSFORMATION = "AES/GCM/NoPadding";
 	private final static int SYMM_GCM_READ_SIZE_BYTE = 4096; // Should be multiple of 4096 byte due to flash block size.
@@ -68,11 +68,13 @@ public class CryptoUtils {
 	private Mac hmac;
 	private KeyGenerator keyGenerator;
 
+	static {
+		Security.insertProviderAt(new BouncyCastleProvider(), 1);
+	}
+
 	public CryptoUtils() {
 
 		try {
-			Security.addProvider(new BouncyCastleProvider());
-
 			secRandom = new SecureRandom();
 			gcmCipher = Cipher.getInstance(SYMM_GCM_TRANSFORMATION,
 					CRYPTOGRAPHIC_PROVIDER);
@@ -426,7 +428,7 @@ public class CryptoUtils {
 	 * 		plaintext which is the content of the received noise box
 	 * @throws java.security.InvalidKeyException
 	 * 		if kdf cannot distribute a key from DH of given EC keys
-	 * @throws org.bouncycastle.crypto.InvalidCipherTextException
+	 * @throws org.spongycastle.crypto.InvalidCipherTextException
 	 * 		on decryption errors
 	 */
 	public DecryptedPlaintext readBox(QblECKeyPair targetKey, byte[] noiseBox) throws InvalidKeyException, InvalidCipherTextException {
@@ -521,7 +523,7 @@ public class CryptoUtils {
 	 * @param plaintext plaintext to encrypt
 	 * @param associatedData additionally associated data
 	 * @return encrypted plaintext
-	 * @throws org.bouncycastle.crypto.InvalidCipherTextException on encryption errors
+	 * @throws org.spongycastle.crypto.InvalidCipherTextException on encryption errors
 	 */
 	public byte[] encrypt(KeyParameter key, byte[] nonce, byte[] plaintext, byte[] associatedData) throws InvalidCipherTextException {
 		AEADParameters params = new AEADParameters(key, MAC_BIT, nonce, associatedData);
@@ -541,7 +543,7 @@ public class CryptoUtils {
 	 * @param ciphertext ciphertext to encrypt
 	 * @param associatedData additionally associated data
 	 * @return encrypted ciphertext
-	 * @throws org.bouncycastle.crypto.InvalidCipherTextException on decryption errors
+	 * @throws org.spongycastle.crypto.InvalidCipherTextException on decryption errors
 	 */
 	public byte[] decrypt(KeyParameter key, byte[] nonce, byte[] ciphertext, byte[] associatedData) throws InvalidCipherTextException {
 		AEADParameters params = new AEADParameters(key, MAC_BIT, nonce, associatedData);

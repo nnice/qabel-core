@@ -11,8 +11,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.crypto.InvalidCipherTextException;
-import org.bouncycastle.util.encoders.Hex;
+import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.util.encoders.Hex;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

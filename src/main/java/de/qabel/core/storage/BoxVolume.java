@@ -6,7 +6,7 @@ import de.qabel.core.crypto.DecryptedPlaintext;
 import de.qabel.core.crypto.QblECKeyPair;
 import de.qabel.core.exceptions.QblStorageException;
 import org.apache.commons.io.IOUtils;
-import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.crypto.InvalidCipherTextException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
