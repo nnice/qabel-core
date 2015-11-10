@@ -32,13 +32,8 @@ public class BoxVolume {
 
 	public BoxVolume(String bucket, String prefix, AWSCredentials credentials,
 	                 QblECKeyPair keyPair, byte[] deviceId, File tempDir) {
-		this.keyPair = keyPair;
-		this.deviceId = deviceId;
-		readBackend = new S3ReadBackend(bucket, prefix);
-		writeBackend = new S3WriteBackend(credentials, bucket, prefix);
-		cryptoUtils = new CryptoUtils();
-		this.tempDir = tempDir;
-
+		this(new S3ReadBackend(bucket, prefix), new S3WriteBackend(credentials, bucket, prefix),
+				keyPair, deviceId, tempDir);
 	}
 
 	public BoxVolume(StorageReadBackend readBackend, StorageWriteBackend writeBackend,
@@ -49,6 +44,16 @@ public class BoxVolume {
 		this.writeBackend = writeBackend;
 		cryptoUtils = new CryptoUtils();
 		this.tempDir = tempDir;
+		try {
+			loadDriver();
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected void loadDriver() throws ClassNotFoundException {
+		logger.info("Loading PC sqlite driver");
+		Class.forName("org.sqlite.JDBC");
 	}
 
 	public BoxNavigation navigate() throws QblStorageException {

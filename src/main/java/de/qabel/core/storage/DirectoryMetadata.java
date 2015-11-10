@@ -19,8 +19,6 @@ import java.util.UUID;
 
 class DirectoryMetadata {
 	private static final Logger logger = LoggerFactory.getLogger(DirectoryMetadata.class.getName());
-	//private static final String JDBC_CLASS_NAME = "org.sqlite.JDBC";
-	private static final String JDBC_CLASS_NAME = "org.sqldroid.SQLDroidDriver";
 	private static final String JDBC_PREFIX = "jdbc:sqlite:";
 	public static final int TYPE_NONE = -1;
 	private final Connection connection;
@@ -98,13 +96,10 @@ class DirectoryMetadata {
 		}
 		Connection connection;
 		try {
-			Class.forName(JDBC_CLASS_NAME);
 			connection = DriverManager.getConnection(JDBC_PREFIX + path.getAbsolutePath());
 			connection.setAutoCommit(true);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException("Cannot load JDBC class!", e);
 		} catch (SQLException e) {
-			throw new RuntimeException("Cannot load in-memory database!", e);
+			throw new RuntimeException("Cannot open database!", e);
 		}
 		DirectoryMetadata dm = new DirectoryMetadata(connection, root, deviceId, path,
 				UUID.randomUUID().toString(), tempDir);
@@ -119,13 +114,10 @@ class DirectoryMetadata {
 	static DirectoryMetadata openDatabase(File path, byte[] deviceId, String fileName, File tempDir) throws QblStorageException {
 		Connection connection;
 		try {
-			Class.forName(JDBC_CLASS_NAME);
 			connection = DriverManager.getConnection(JDBC_PREFIX + path.getAbsolutePath());
 			connection.setAutoCommit(true);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException("Cannot load JDBC class!", e);
 		} catch (SQLException e) {
-			throw new RuntimeException("Cannot load in-memory database!", e);
+			throw new RuntimeException("Cannot open database!", e);
 		}
 		return new DirectoryMetadata(connection, deviceId, path, fileName, tempDir);
 	}
