@@ -2,9 +2,8 @@ package de.qabel.core.storage;
 
 import java.util.Arrays;
 
-public class BoxFile {
+public class BoxFile extends BoxObject {
 	public String block;
-	public String name;
 	public Long size;
 	public Long mtime;
 	public byte[] key;
@@ -35,8 +34,8 @@ public class BoxFile {
 	}
 
 	public BoxFile(String block, String name, Long size, Long mtime, byte[] key) {
+		super(name);
 		this.block = block;
-		this.name = name;
 		this.size = size;
 		this.mtime = mtime;
 		this.key = key;

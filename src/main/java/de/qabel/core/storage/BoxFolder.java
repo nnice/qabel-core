@@ -2,13 +2,12 @@ package de.qabel.core.storage;
 
 import java.util.Arrays;
 
-public class BoxFolder {
-	public String name;
+public class BoxFolder extends BoxObject {
 	public byte[] key;
 	public String ref;
 
 	public BoxFolder(String ref, String name, byte[] key) {
-		this.name = name;
+		super(name);
 		this.key = key;
 		this.ref = ref;
 	}
