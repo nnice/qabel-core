@@ -62,7 +62,7 @@ public class CryptoUtilsTest {
 		cu.decryptFileAuthenticatedSymmetricAndValidateTag(encIn, dec, key);
 
 		try {
-			assertEquals("AA",
+			assertEquals("aa",
 					Hex.toHexString(Files.readAllBytes(dec.toPath())));
 		} finally {
 			dec.delete();
