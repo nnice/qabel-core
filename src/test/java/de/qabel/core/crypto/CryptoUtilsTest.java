@@ -2,10 +2,7 @@ package de.qabel.core.crypto;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.security.InvalidKeyException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -45,6 +42,30 @@ public class CryptoUtilsTest {
 		} finally {
 			testFileEnc.delete();
 			testFileDec.delete();
+		}
+	}
+
+	@Test
+	public void smallFileDecryptionTest() throws IOException, InvalidKeyException {
+		KeyParameter key = new KeyParameter(Hex.decode("feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308"));
+		byte[] nonce = Hex.decode("cafebabefacedbaddecaf888");
+
+		InputStream ref = new ByteArrayInputStream(Hex.decode("AA"));
+		ByteArrayOutputStream enc = new ByteArrayOutputStream();
+		File dec = new File(testFileName + ".small.dec");
+
+		// create encrypted file for decryption test
+		cu.encryptStreamAuthenticatedSymmetric(ref, enc, key, nonce);
+
+		InputStream encIn = new ByteArrayInputStream(enc.toByteArray());
+
+		cu.decryptFileAuthenticatedSymmetricAndValidateTag(encIn, dec, key);
+
+		try {
+			assertEquals("AA",
+					Hex.toHexString(Files.readAllBytes(dec.toPath())));
+		} finally {
+			dec.delete();
 		}
 	}
 
