@@ -68,9 +68,10 @@ public class AccountingHTTPTest {
         String responseContent = "{\"quota\": 2147483648, \"size\": 15460}";
         CloseableHttpClientStub client = stubClient("GET", "http://localhost:9697/api/v0/quota/", 200, responseContent);
         AccountingHTTP http = new AccountingHTTP(server, profile, client);
+        long testQuota = 2147483648L;
 
-        assertEquals("2147483648", http.getQuota());
-   }
+        assertEquals(testQuota, http.getQuota());
+    }
 
     @Test
     public void testAutologin() throws IOException, QblInvalidCredentials {

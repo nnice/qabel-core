@@ -34,7 +34,7 @@ public class AccountingHTTP {
     private final CloseableHttpClient httpclient;
     private Gson gson;
     private AccountingProfile profile;
-    String quota;
+    long quota;
 
     public AccountingHTTP(AccountingServer server, AccountingProfile profile) {
         this(server, profile, HttpClients.createMinimal());
@@ -87,7 +87,7 @@ public class AccountingHTTP {
         }
     }
 
-    public String getQuota() throws IOException, QblInvalidCredentials {
+    public long getQuota() throws IOException, QblInvalidCredentials {
         getAuthToken();
         URI uri;
         try {
