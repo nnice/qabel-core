@@ -34,6 +34,7 @@ public class AccountingHTTP {
     private final CloseableHttpClient httpclient;
     private Gson gson;
     private AccountingProfile profile;
+    String quota;
 
     public AccountingHTTP(AccountingServer server, AccountingProfile profile) {
         this(server, profile, HttpClients.createMinimal());
@@ -86,9 +87,39 @@ public class AccountingHTTP {
         }
     }
 
-    public int getQuota() throws IOException, QblInvalidCredentials {
+    public String getQuota() throws IOException, QblInvalidCredentials {
         getAuthToken();
-        return 100;    //TODO implement when servers support it
+        URI uri;
+        try {
+            uri = buildBlockUri("api/v0/quota").build();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Url building failed", e);
+        }
+
+        HttpGet httpGet = new HttpGet(uri);
+        httpGet.setHeader("Accept", "application/json");
+        authorize(httpGet);
+
+        try (CloseableHttpResponse response = httpclient.execute(httpGet)) {
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode >= 400) {
+                throw new IllegalStateException(
+                    "Server responded with " + statusCode + ": " + response.getStatusLine().getReasonPhrase()
+                );
+            }
+            HttpEntity entity = response.getEntity();
+            if (entity == null) {
+                throw new IOException("No answer from login");
+            }
+            String responseString = EntityUtils.toString(entity);
+            try {
+                QuotaDto parsedDto = gson.fromJson(responseString, QuotaDto.class);
+                quota = parsedDto.quota;
+            } catch (JsonSyntaxException e) {
+                throw new IllegalStateException("non-json response from server: " + responseString, e);
+            }
+        }
+        return quota;
     }
 
     public void authorize(HttpRequest request) throws IOException, QblInvalidCredentials {
