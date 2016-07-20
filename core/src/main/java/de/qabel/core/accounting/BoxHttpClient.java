@@ -28,14 +28,13 @@ import java.util.*;
 public class BoxHttpClient implements BoxClient {
 
     private static final Logger logger = LoggerFactory.getLogger(BoxHttpClient.class.getName());
-    public static final String EMAIL_KEY = "email";
 
     private AccountingServer server;
     private final CloseableHttpClient httpclient;
     private Gson gson;
     private AccountingProfile profile;
 
-    public long quota;
+    public QuotaDto quota;
 
     public BoxHttpClient(AccountingServer server, AccountingProfile profile) {
         this(server, profile, HttpClients.createMinimal());
@@ -48,6 +47,7 @@ public class BoxHttpClient implements BoxClient {
         gson = new Gson();
     }
 
+    @Override
     public void login() throws IOException, QblInvalidCredentials {
         URI uri;
         try {
@@ -89,7 +89,7 @@ public class BoxHttpClient implements BoxClient {
     }
 
     @Override
-    public long getQuota() throws IOException, QblInvalidCredentials {
+    public QuotaDto getQuota() throws IOException, QblInvalidCredentials {
         getAuthToken();
         URI uri;
         try {
@@ -115,16 +115,16 @@ public class BoxHttpClient implements BoxClient {
             }
             String responseString = EntityUtils.toString(entity);
             try {
-                QuotaDto parsedDto = gson.fromJson(responseString, QuotaDto.class);
-                profile.setQuota(parsedDto.quota);
-                quota = parsedDto.quota;
+                quota = gson.fromJson(responseString, QuotaDto.class);
+                profile.setQuota(quota.quota);
+                return quota;
             } catch (JsonSyntaxException e) {
                 throw new IllegalStateException("non-json response from server: " + responseString, e);
             }
         }
-        return quota;
     }
 
+    @Override
     public void authorize(HttpRequest request) throws IOException, QblInvalidCredentials {
         request.addHeader("Authorization", "Token " + getAuthToken());
     }
@@ -136,6 +136,7 @@ public class BoxHttpClient implements BoxClient {
         return server.getAuthToken();
     }
 
+    @Override
     public void updatePrefixes() throws IOException, QblInvalidCredentials {
         ArrayList<String> prefixes;
         URI uri;
@@ -169,6 +170,7 @@ public class BoxHttpClient implements BoxClient {
         }
     }
 
+    @Override
     public void createPrefix() throws IOException, QblInvalidCredentials {
         URI uri;
         try {
@@ -188,6 +190,7 @@ public class BoxHttpClient implements BoxClient {
         }
     }
 
+    @Override
     public URIBuilder buildUri(String resource) {
         return buildResourceUri(resource, server.getUri());
     }
@@ -201,10 +204,12 @@ public class BoxHttpClient implements BoxClient {
             .setPath('/' + resource + '/');
     }
 
+    @Override
     public URIBuilder buildBlockUri(String resource) {
         return buildResourceUri(resource, server.getBlockUri());
     }
 
+    @Override
     public ArrayList<String> getPrefixes() throws IOException, QblInvalidCredentials {
         ArrayList<String> prefixes = profile.getPrefixes();
         if (prefixes.size() == 0) {
@@ -214,10 +219,12 @@ public class BoxHttpClient implements BoxClient {
         return prefixes;
     }
 
+    @Override
     public AccountingProfile getProfile() {
         return profile;
     }
 
+    @Override
     public void resetPassword(String email) throws IOException {
         URI uri;
         try {
@@ -264,6 +271,7 @@ public class BoxHttpClient implements BoxClient {
         }
     }
 
+    @Override
     public void createBoxAccount(String email) throws IOException, QblCreateAccountFailException {
         URI uri;
 

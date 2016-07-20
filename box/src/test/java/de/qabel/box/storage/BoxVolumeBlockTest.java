@@ -2,6 +2,7 @@ package de.qabel.box.storage;
 
 import de.qabel.box.http.BlockReadBackend;
 import de.qabel.box.http.BlockWriteBackend;
+import de.qabel.core.accounting.BoxClient;
 import de.qabel.core.accounting.BoxHttpClient;
 import de.qabel.core.accounting.AccountingProfile;
 import de.qabel.core.config.AccountingServer;
@@ -14,7 +15,7 @@ import java.util.List;
 
 public class BoxVolumeBlockTest extends BoxVolumeTest {
     private BlockReadBackend readBackend;
-    private static BoxHttpClient accountingHTTP;
+    private static BoxClient accountingHTTP;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
