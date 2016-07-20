@@ -30,13 +30,13 @@ public class BoxClientHttpTest {
 
     @Test
     public void testGetQuota() throws IOException, QblInvalidCredentials {
-        String responseContent = "{\"quotaState\": 2147483648, \"size\": 15460}";
-        CloseableHttpClientStub httpClient = stubClient("GET", "http://localhost:9697/api/v0/quotaState/", 200, responseContent);
+        String responseContent = "{\"quota\": 2147483648, \"size\": 15460}";
+        CloseableHttpClientStub httpClient = stubClient("GET", "http://localhost:9697/api/v0/quota/", 200, responseContent);
         boxClient = new BoxHttpClient(server, profile, httpClient);
 
         QuotaState expectedQuota = new QuotaState();
         expectedQuota.quota = 2147483648L;
-        expectedQuota.size = 15460L;
+        expectedQuota.size = 15460;
         QuotaState quotaState = boxClient.getQuotaState();
 
         assertEquals(expectedQuota.quota, quotaState.quota);

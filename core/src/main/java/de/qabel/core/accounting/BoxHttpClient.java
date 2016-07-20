@@ -92,7 +92,7 @@ public class BoxHttpClient implements BoxClient {
         getAuthToken();
         URI uri;
         try {
-            uri = buildBlockUri("api/v0/quotaState").build();
+            uri = buildBlockUri("api/v0/quota").build();
         } catch (URISyntaxException e) {
             throw new RuntimeException("Url building failed", e);
         }
