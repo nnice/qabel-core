@@ -111,7 +111,7 @@ public class AccountingHTTPClient implements AccountingHTTP {
             }
             HttpEntity entity = response.getEntity();
             if (entity == null) {
-                throw new IOException("No answer from login");
+                throw new IOException("No answer from quota");
             }
             String responseString = EntityUtils.toString(entity);
             try {
