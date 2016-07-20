@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public interface BoxClient {
-    String EMAIL_KEY = "email";
+
 
     void login() throws IOException, QblInvalidCredentials;
 
