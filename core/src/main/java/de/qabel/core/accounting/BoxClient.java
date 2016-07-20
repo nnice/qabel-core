@@ -4,6 +4,6 @@ import de.qabel.core.exceptions.QblInvalidCredentials;
 
 import java.io.IOException;
 
-public interface AccountingHTTP {
+public interface BoxClient {
     long getQuota() throws IOException, QblInvalidCredentials;
 }

@@ -1,6 +1,6 @@
 package de.qabel.box.http;
 
-import de.qabel.core.accounting.AccountingHTTPClient;
+import de.qabel.core.accounting.BoxHttpClient;
 import de.qabel.core.exceptions.QblInvalidCredentials;
 import org.apache.http.HttpRequest;
 
@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 
 public class BlockWriteBackend extends HttpWriteBackend {
-    private AccountingHTTPClient accountingHTTP;
+    private BoxHttpClient accountingHTTP;
 
-    public BlockWriteBackend(String root, AccountingHTTPClient accountingHTTP) throws URISyntaxException {
+    public BlockWriteBackend(String root, BoxHttpClient accountingHTTP) throws URISyntaxException {
         super(root);
         this.accountingHTTP = accountingHTTP;
     }

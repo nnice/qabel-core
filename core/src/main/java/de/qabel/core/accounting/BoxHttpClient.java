@@ -25,9 +25,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 
-public class AccountingHTTPClient implements AccountingHTTP {
+public class BoxHttpClient implements BoxClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(AccountingHTTPClient.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(BoxHttpClient.class.getName());
     public static final String EMAIL_KEY = "email";
 
     private AccountingServer server;
@@ -37,11 +37,11 @@ public class AccountingHTTPClient implements AccountingHTTP {
 
     public long quota;
 
-    public AccountingHTTPClient(AccountingServer server, AccountingProfile profile) {
+    public BoxHttpClient(AccountingServer server, AccountingProfile profile) {
         this(server, profile, HttpClients.createMinimal());
     }
 
-    public AccountingHTTPClient(AccountingServer server, AccountingProfile profile, CloseableHttpClient httpclient) {
+    public BoxHttpClient(AccountingServer server, AccountingProfile profile, CloseableHttpClient httpclient) {
         this.server = server;
         this.profile = profile;
         this.httpclient = httpclient;

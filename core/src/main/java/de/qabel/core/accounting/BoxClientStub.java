@@ -5,14 +5,14 @@ import de.qabel.core.exceptions.QblInvalidCredentials;
 
 import java.io.IOException;
 
-public class AccountingHTTPStub implements AccountingHTTP {
+public class BoxClientStub implements BoxClient {
 
     long quota = 24;
 
-    public AccountingHTTPStub() {
+    public BoxClientStub() {
     }
 
-    public AccountingHTTPStub(long quota) {
+    public BoxClientStub(long quota) {
         this.quota = quota;
     }
 

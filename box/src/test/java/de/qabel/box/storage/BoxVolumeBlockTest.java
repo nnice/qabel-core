@@ -2,7 +2,7 @@ package de.qabel.box.storage;
 
 import de.qabel.box.http.BlockReadBackend;
 import de.qabel.box.http.BlockWriteBackend;
-import de.qabel.core.accounting.AccountingHTTPClient;
+import de.qabel.core.accounting.BoxHttpClient;
 import de.qabel.core.accounting.AccountingProfile;
 import de.qabel.core.config.AccountingServer;
 import de.qabel.core.crypto.QblECKeyPair;
@@ -14,7 +14,7 @@ import java.util.List;
 
 public class BoxVolumeBlockTest extends BoxVolumeTest {
     private BlockReadBackend readBackend;
-    private static AccountingHTTPClient accountingHTTP;
+    private static BoxHttpClient accountingHTTP;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -29,7 +29,7 @@ public class BoxVolumeBlockTest extends BoxVolumeTest {
     protected void setUpVolume() {
         try {
             AccountingServer server = new AccountingServer(new URI("http://localhost:9696"), new URI("http://localhost:9697"), "testuser", "testuser");
-            accountingHTTP = new AccountingHTTPClient(server, new AccountingProfile());
+            accountingHTTP = new BoxHttpClient(server, new AccountingProfile());
             QblECKeyPair keyPair = new QblECKeyPair();
 
             List<String> prefixes = accountingHTTP.getPrefixes();
