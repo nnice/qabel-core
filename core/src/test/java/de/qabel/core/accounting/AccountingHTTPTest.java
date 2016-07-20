@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
 public class AccountingHTTPTest {
 
     public AccountingServer server;
-    private AccountingHTTP accountingHTTP;
+    private AccountingHTTPClient accountingHTTP;
     private AccountingProfile profile;
     private TestAccountingServerBuilder serverBuilder;
 
@@ -33,7 +33,7 @@ public class AccountingHTTPTest {
         serverBuilder = new TestAccountingServerBuilder();
         server = serverBuilder.build();
         profile = new AccountingProfile();
-        accountingHTTP = new AccountingHTTP(server, profile);
+        accountingHTTP = new AccountingHTTPClient(server, profile);
         accountingHTTP.login();
         accountingHTTP.createPrefix();
     }
@@ -67,7 +67,7 @@ public class AccountingHTTPTest {
     public void testGetQuota() throws IOException, QblInvalidCredentials {
         String responseContent = "{\"quota\": 2147483648, \"size\": 15460}";
         CloseableHttpClientStub client = stubClient("GET", "http://localhost:9697/api/v0/quota/", 200, responseContent);
-        AccountingHTTP http = new AccountingHTTP(server, profile, client);
+        AccountingHTTP http = new AccountingHTTPClient(server, profile, client);
         long testQuota = 2147483648L;
 
         assertEquals(testQuota, http.getQuota());
@@ -96,7 +96,7 @@ public class AccountingHTTPTest {
 
         String responseContent = "{\"email\": [\"Enter a valid email address.\"]}";
         CloseableHttpClientStub client = stubClient("POST", "http://localhost:9696/api/v0/auth/password/reset/", 400, responseContent);
-        AccountingHTTP http = new AccountingHTTP(server, profile, client);
+        AccountingHTTPClient http = new AccountingHTTPClient(server, profile, client);
         http.resetPassword("mymail");
     }
 
@@ -106,7 +106,7 @@ public class AccountingHTTPTest {
         CloseableHttpClientStub client = new CloseableHttpClientStub();
         CloseableHttpResponseStub response = createResponseFromString(200, responseContent);
         client.addResponse("POST", "http://localhost:9696/api/v0/auth/password/reset/", response);
-        AccountingHTTP http = new AccountingHTTP(server, profile, client);
+        AccountingHTTPClient http = new AccountingHTTPClient(server, profile, client);
         http.resetPassword("valid.email@example.org");
 
         assertEquals("{\"email\":\"" + "valid.email@example.org" + "\"}", client.getBody());
@@ -117,7 +117,7 @@ public class AccountingHTTPTest {
     public void resetPasswordConvertsFormatExceptions() throws Exception {
         String responseContent = "invalid json";
         CloseableHttpClientStub client = stubClient("POST", "http://localhost:9696/api/v0/auth/password/reset/", 200, responseContent);
-        AccountingHTTP http = new AccountingHTTP(server, profile, client);
+        AccountingHTTPClient http = new AccountingHTTPClient(server, profile, client);
         http.resetPassword("mymail");
     }
 
@@ -127,7 +127,7 @@ public class AccountingHTTPTest {
 
         String name = "testUser" + rand.nextInt(10000);
         server = serverBuilder.user(name).build();
-        accountingHTTP = new AccountingHTTP(server, profile);
+        accountingHTTP = new AccountingHTTPClient(server, profile);
         accountingHTTP.createBoxAccount(name + "@example.com");
         accountingHTTP.login();
         assertNotNull("Auth token not set after login", server.getAuthToken());
@@ -137,7 +137,7 @@ public class AccountingHTTPTest {
     public void createBoxAccountEMailNotCorrect() throws Exception {
 
         server = serverBuilder.user("testUser").build();
-        accountingHTTP = new AccountingHTTP(server, profile);
+        accountingHTTP = new AccountingHTTPClient(server, profile);
         Map map = null;
         try {
             accountingHTTP.createBoxAccount("testUser");
@@ -153,7 +153,7 @@ public class AccountingHTTPTest {
     public void createBoxAccountPsToShort() throws Exception {
 
         server = serverBuilder.user("testUser").pass("12345").build();
-        accountingHTTP = new AccountingHTTP(server, profile);
+        accountingHTTP = new AccountingHTTPClient(server, profile);
         Map map = null;
         try {
             accountingHTTP.createBoxAccount("testUser");
@@ -169,7 +169,7 @@ public class AccountingHTTPTest {
     public void createBoxAccountUsernameAlreadyInUse() throws Exception {
 
         server = serverBuilder.user("testuser").build();
-        accountingHTTP = new AccountingHTTP(server, profile);
+        accountingHTTP = new AccountingHTTPClient(server, profile);
         Map map = null;
         try {
             accountingHTTP.createBoxAccount("testUser");
@@ -185,7 +185,7 @@ public class AccountingHTTPTest {
     public void createBoxAccountEmailAlreadyInUse() throws Exception {
 
         server = serverBuilder.user("testuser").build();
-        accountingHTTP = new AccountingHTTP(server, profile);
+        accountingHTTP = new AccountingHTTPClient(server, profile);
         Map map = null;
         try {
             accountingHTTP.createBoxAccount("testuser");
