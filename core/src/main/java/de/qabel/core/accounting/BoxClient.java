@@ -13,7 +13,7 @@ public interface BoxClient {
 
     void login() throws IOException, QblInvalidCredentials;
 
-    QuotaDto getQuota() throws IOException, QblInvalidCredentials;
+    QuotaState getQuotaState() throws IOException, QblInvalidCredentials;
 
     void authorize(HttpRequest request) throws IOException, QblInvalidCredentials;
 

@@ -1,6 +1,6 @@
 package de.qabel.core.accounting;
 
-class QuotaDto {
+class QuotaState {
     public long quota;
     public long size;
 }

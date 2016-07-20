@@ -34,7 +34,7 @@ public class BoxHttpClient implements BoxClient {
     private Gson gson;
     private AccountingProfile profile;
 
-    public QuotaDto quota;
+    public QuotaState quotaState;
 
     public BoxHttpClient(AccountingServer server, AccountingProfile profile) {
         this(server, profile, HttpClients.createMinimal());
@@ -88,12 +88,11 @@ public class BoxHttpClient implements BoxClient {
         }
     }
 
-    @Override
-    public QuotaDto getQuota() throws IOException, QblInvalidCredentials {
+    public QuotaState getQuotaState() throws IOException, QblInvalidCredentials {
         getAuthToken();
         URI uri;
         try {
-            uri = buildBlockUri("api/v0/quota").build();
+            uri = buildBlockUri("api/v0/quotaState").build();
         } catch (URISyntaxException e) {
             throw new RuntimeException("Url building failed", e);
         }
@@ -111,13 +110,13 @@ public class BoxHttpClient implements BoxClient {
             }
             HttpEntity entity = response.getEntity();
             if (entity == null) {
-                throw new IOException("No answer from quota");
+                throw new IOException("No answer from quotaState");
             }
             String responseString = EntityUtils.toString(entity);
             try {
-                quota = gson.fromJson(responseString, QuotaDto.class);
-                profile.setQuota(quota.quota);
-                return quota;
+                quotaState = gson.fromJson(responseString, QuotaState.class);
+                profile.setQuota(quotaState.quota);
+                return quotaState;
             } catch (JsonSyntaxException e) {
                 throw new IllegalStateException("non-json response from server: " + responseString, e);
             }

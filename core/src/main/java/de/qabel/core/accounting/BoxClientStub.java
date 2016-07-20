@@ -11,11 +11,11 @@ import java.util.ArrayList;
 
 public class BoxClientStub implements BoxClient {
 
-    QuotaDto quota = new QuotaDto();
+    QuotaState quotaState = new QuotaState();
 
     public BoxClientStub() {
-        quota.quota = 24;
-        quota.size = 200;
+        quotaState.quota = 24;
+        quotaState.size = 200;
     }
 
     @Override
@@ -23,9 +23,8 @@ public class BoxClientStub implements BoxClient {
 
     }
 
-    @Override
-    public QuotaDto getQuota() throws IOException, QblInvalidCredentials {
-        return quota;
+    public QuotaState getQuotaState() throws IOException, QblInvalidCredentials {
+        return quotaState;
     }
 
     @Override

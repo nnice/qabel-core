@@ -30,17 +30,17 @@ public class BoxClientHttpTest {
 
     @Test
     public void testGetQuota() throws IOException, QblInvalidCredentials {
-        String responseContent = "{\"quota\": 2147483648, \"size\": 15460}";
-        CloseableHttpClientStub httpClient = stubClient("GET", "http://localhost:9697/api/v0/quota/", 200, responseContent);
+        String responseContent = "{\"quotaState\": 2147483648, \"size\": 15460}";
+        CloseableHttpClientStub httpClient = stubClient("GET", "http://localhost:9697/api/v0/quotaState/", 200, responseContent);
         boxClient = new BoxHttpClient(server, profile, httpClient);
 
-        QuotaDto expectedQuota = new QuotaDto();
+        QuotaState expectedQuota = new QuotaState();
         expectedQuota.quota = 2147483648L;
         expectedQuota.size = 15460L;
-        QuotaDto quotaDto = boxClient.getQuota();
+        QuotaState quotaState = boxClient.getQuotaState();
 
-        assertEquals(expectedQuota.quota, quotaDto.quota);
-        assertEquals(expectedQuota.size, quotaDto.size);
+        assertEquals(expectedQuota.quota, quotaState.quota);
+        assertEquals(expectedQuota.size, quotaState.size);
     }
 
     @Before
@@ -81,7 +81,7 @@ public class BoxClientHttpTest {
     @Test
     public void testAutologin() throws IOException, QblInvalidCredentials {
         server.setAuthToken(null);
-        boxClient.getQuota();
+        boxClient.getQuotaState();
         assertNotNull(server.getAuthToken());
     }
 
