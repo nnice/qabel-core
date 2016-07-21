@@ -189,7 +189,6 @@ public class BoxHttpClient implements BoxClient {
         }
     }
 
-    @Override
     public URIBuilder buildUri(String resource) {
         return buildResourceUri(resource, server.getUri());
     }
@@ -203,7 +202,6 @@ public class BoxHttpClient implements BoxClient {
             .setPath('/' + resource + '/');
     }
 
-    @Override
     public URIBuilder buildBlockUri(String resource) {
         return buildResourceUri(resource, server.getBlockUri());
     }
@@ -218,7 +216,6 @@ public class BoxHttpClient implements BoxClient {
         return prefixes;
     }
 
-    @Override
     public AccountingProfile getProfile() {
         return profile;
     }
