@@ -42,12 +42,11 @@ public class BoxClientStub implements BoxClient {
 
     }
 
-    @Override
     public URIBuilder buildUri(String resource) {
         return null;
     }
 
-    @Override
+
     public URIBuilder buildBlockUri(String resource) {
         return null;
     }
@@ -57,7 +56,6 @@ public class BoxClientStub implements BoxClient {
         return null;
     }
 
-    @Override
     public AccountingProfile getProfile() {
         return null;
     }
