@@ -21,7 +21,7 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.*;
 
-public class BoxClientHttpTest {
+public class BoxHttpClientTest {
 
     public AccountingServer server;
     private BoxClient boxClient;
