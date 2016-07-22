@@ -19,7 +19,7 @@ import java.security.MessageDigest
 import java.security.Security
 import java.util.*
 
-open class BoxVolumeImpl(val config: BoxVolumeConfig, private val keyPair: QblECKeyPair) : BoxVolume {
+open class BoxVolumeImpl(override val config: BoxVolumeConfig, private val keyPair: QblECKeyPair) : BoxVolume {
     private val logger by lazy { LoggerFactory.getLogger(BoxVolumeImpl::class.java) }
     private val cryptoUtils = CryptoUtils()
     private val indexDmDownloader by lazy {

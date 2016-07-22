@@ -9,6 +9,8 @@ interface BoxVolume {
     @Deprecated("gets removed soon")
     val rootRef: String
 
+    val config: BoxVolumeConfig
+
     fun getReadBackend(): StorageReadBackend
 
     /**
