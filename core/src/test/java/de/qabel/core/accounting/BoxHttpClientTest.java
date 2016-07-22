@@ -1,5 +1,6 @@
 package de.qabel.core.accounting;
 
+import com.sun.org.apache.xpath.internal.operations.Quo;
 import de.qabel.core.config.AccountingServer;
 import de.qabel.core.exceptions.QblCreateAccountFailException;
 import de.qabel.core.exceptions.QblInvalidCredentials;
@@ -41,6 +42,16 @@ public class BoxHttpClientTest {
 
         assertEquals(expectedQuota.quota, quotaState.quota);
         assertEquals(expectedQuota.size, quotaState.size);
+    }
+
+    @Test
+    public void testQuotaDescription() {
+        QuotaState quota = new QuotaState();
+        quota.quota = 2147483648L;
+        quota.size = 1073741824L;
+
+        String expected = "1 GB free / 2 GB";
+        assertEquals(expected,quota.getQuotaDescription());
     }
 
     @Before
