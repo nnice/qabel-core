@@ -71,7 +71,7 @@ open class BoxVolume(val config: BoxVolumeConfig, private val keyPair: QblECKeyP
      * @throws QblStorageIOFailure        if the temporary files could not be accessed
      */
     @Throws(QblStorageException::class)
-    fun navigate(): IndexNavigation {
+    open fun navigate(): IndexNavigation {
         with(config) {
             val dm = indexDmDownloader.loadDirectoryMetadata(rootRef).dm
             return DefaultIndexNavigation(dm, keyPair, config)
