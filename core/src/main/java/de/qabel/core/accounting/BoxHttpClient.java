@@ -26,7 +26,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 
 public class BoxHttpClient implements BoxClient {
-    String EMAIL_KEY = "email";
+    private static final String EMAIL_KEY = "email";
     private static final Logger logger = LoggerFactory.getLogger(BoxHttpClient.class.getName());
 
     private AccountingServer server;
