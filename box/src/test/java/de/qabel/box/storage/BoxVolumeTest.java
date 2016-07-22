@@ -42,8 +42,8 @@ public abstract class BoxVolumeTest {
     private static final Logger logger = LoggerFactory.getLogger(BoxVolumeTest.class);
     private final String DEFAULT_UPLOAD_FILENAME = "foobar";
 
-    protected BoxVolume volume;
-    protected BoxVolume volume2;
+    protected BoxVolumeImpl volume;
+    protected BoxVolumeImpl volume2;
     protected byte[] deviceID;
     protected byte[] deviceID2;
     protected QblECKeyPair keyPair;

@@ -45,7 +45,7 @@ public class BoxVolumeBlockTest extends BoxVolumeTest {
             readBackend = new BlockReadBackend(root, accountingHTTP);
 
 
-            volume = new BoxVolume(
+            volume = new BoxVolumeImpl(
                     readBackend,
                     new BlockWriteBackend(root, accountingHTTP),
                     keyPair,
@@ -53,7 +53,7 @@ public class BoxVolumeBlockTest extends BoxVolumeTest {
                     volumeTmpDir,
                     prefix
             );
-            volume2 = new BoxVolume(
+            volume2 = new BoxVolumeImpl(
                     new BlockReadBackend(root, accountingHTTP),
                     new BlockWriteBackend(root, accountingHTTP),
                     keyPair,
