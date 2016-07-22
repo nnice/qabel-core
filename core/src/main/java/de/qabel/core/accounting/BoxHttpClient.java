@@ -34,13 +34,11 @@ public class BoxHttpClient implements BoxClient {
     private Gson gson;
     private AccountingProfile profile;
 
-    public QuotaState quotaState;
-
     public BoxHttpClient(AccountingServer server, AccountingProfile profile) {
         this(server, profile, HttpClients.createMinimal());
     }
 
-    public BoxHttpClient(AccountingServer server, AccountingProfile profile, CloseableHttpClient httpclient) {
+    BoxHttpClient(AccountingServer server, AccountingProfile profile, CloseableHttpClient httpclient) {
         this.server = server;
         this.profile = profile;
         this.httpclient = httpclient;
@@ -114,7 +112,7 @@ public class BoxHttpClient implements BoxClient {
             }
             String responseString = EntityUtils.toString(entity);
             try {
-                quotaState = gson.fromJson(responseString, QuotaState.class);
+                QuotaState quotaState = gson.fromJson(responseString, QuotaState.class);
                 profile.setQuota(quotaState.quota);
                 return quotaState;
             } catch (JsonSyntaxException e) {
