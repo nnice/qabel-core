@@ -1,6 +1,5 @@
 package de.qabel.box.storage
 
-import de.qabel.box.storage.exceptions.QblStorageDecryptionFailed
 import de.qabel.box.storage.exceptions.QblStorageException
 import de.qabel.box.storage.exceptions.QblStorageIOFailure
 import de.qabel.box.storage.exceptions.QblStorageInvalidKey
@@ -31,6 +30,9 @@ open class BoxVolume(val config: BoxVolumeConfig, private val keyPair: QblECKeyP
             }
         }
     }
+
+    @Deprecated("gets removed soon")
+    fun getReadBackend() = config.readBackend
 
     init {
         try {
@@ -69,7 +71,8 @@ open class BoxVolume(val config: BoxVolumeConfig, private val keyPair: QblECKeyP
      * @throws QblStorageIOFailure        if the temporary files could not be accessed
      */
     @Throws(QblStorageException::class)
-    fun navigate(): DefaultIndexNavigation { with(config) {
+    fun navigate(): IndexNavigation {
+        with(config) {
             val dm = indexDmDownloader.loadDirectoryMetadata(rootRef).dm
             return DefaultIndexNavigation(dm, keyPair, config)
         }
@@ -78,7 +81,7 @@ open class BoxVolume(val config: BoxVolumeConfig, private val keyPair: QblECKeyP
     /**
      * Calculate the filename of the index metadata file
      */
-    private val rootRef by lazy {
+    val rootRef by lazy {
         val digest = MessageDigest.getInstance("SHA-256").apply {
             update(config.prefix.toByteArray())
             update(keyPair.privateKey)
