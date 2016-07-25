@@ -3,8 +3,13 @@ package de.qabel.core.accounting;
 import org.apache.commons.io.FileUtils;
 
 class QuotaState {
-    public long quota;
-    public long size;
+    private long quota;
+    private long size;
+
+    public QuotaState(long quota, long size) {
+        this.quota = quota;
+        this.size = size;
+    }
 
     public long getQuota() {
         return quota;
@@ -14,7 +19,14 @@ class QuotaState {
         return size;
     }
 
-    public String getQuotaDescription() {
+
+    /**
+     * debug only feature
+     *
+     * @return
+     */
+    @Override
+    public String toString() {
         return FileUtils.byteCountToDisplaySize(quota - size) + " free / " + FileUtils.byteCountToDisplaySize(quota);
     }
 }

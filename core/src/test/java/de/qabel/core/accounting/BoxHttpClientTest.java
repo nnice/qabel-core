@@ -35,23 +35,19 @@ public class BoxHttpClientTest {
         CloseableHttpClientStub httpClient = stubClient("GET", "http://localhost:9697/api/v0/quota/", 200, responseContent);
         boxClient = new BoxHttpClient(server, profile, httpClient);
 
-        QuotaState expectedQuota = new QuotaState();
-        expectedQuota.quota = 2147483648L;
-        expectedQuota.size = 15460;
+        QuotaState expectedQuota = new QuotaState(2147483648L, 15460);
+
         QuotaState quotaState = boxClient.getQuotaState();
 
-        assertEquals(expectedQuota.quota, quotaState.quota);
-        assertEquals(expectedQuota.size, quotaState.size);
+        assertEquals(expectedQuota.getQuota(), quotaState.getQuota());
+        assertEquals(expectedQuota.getSize(), quotaState.getSize());
     }
 
     @Test
     public void testQuotaDescription() {
-        QuotaState quota = new QuotaState();
-        quota.quota = 2147483648L;
-        quota.size = 1073741824L;
-
+        QuotaState quota = new QuotaState(2147483648L, 1073741824L);
         String expected = "1 GB free / 2 GB";
-        assertEquals(expected,quota.getQuotaDescription());
+        assertEquals(expected, quota.toString());
     }
 
     @Before

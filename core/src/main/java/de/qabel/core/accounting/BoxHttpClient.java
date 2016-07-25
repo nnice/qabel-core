@@ -113,7 +113,7 @@ public class BoxHttpClient implements BoxClient {
             String responseString = EntityUtils.toString(entity);
             try {
                 QuotaState quotaState = gson.fromJson(responseString, QuotaState.class);
-                profile.setQuota(quotaState.quota);
+                profile.setQuota(quotaState.getQuota());
                 return quotaState;
             } catch (JsonSyntaxException e) {
                 throw new IllegalStateException("non-json response from server: " + responseString, e);
