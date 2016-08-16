@@ -27,7 +27,11 @@ class InMemoryContactRepository : ContactRepository {
     }
 
     override fun save(contact: Contact, identity: Identity) {
-        contact.id = contacts.size + 1
+        if (contact.id == 0 && exists(contact)) {
+            throw EntityNotFoundException("Contact already exists!")
+        } else if (contact.id == 0) {
+            contact.id = contacts.size+1
+        }
         contacts.put(contact.keyIdentifier, contact)
         identityMapping.getOrDefault(identity.keyIdentifier).add(contact.keyIdentifier)
         identities.put(identity.keyIdentifier, identity)
