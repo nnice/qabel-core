@@ -4,6 +4,7 @@ import de.qabel.core.config.Contact
 import de.qabel.core.config.Contacts
 import de.qabel.core.config.Identity
 import de.qabel.core.repository.ContactRepository
+import de.qabel.core.repository.exception.EntityExistsException
 import de.qabel.core.repository.exception.EntityNotFoundException
 import de.qabel.core.util.DefaultHashMap
 import java.util.*
@@ -28,7 +29,7 @@ class InMemoryContactRepository : ContactRepository {
 
     override fun save(contact: Contact, identity: Identity) {
         if (contact.id == 0 && exists(contact)) {
-            throw EntityNotFoundException("Contact already exists!")
+            throw EntityExistsException("Contact already exists!")
         } else if (contact.id == 0) {
             contact.id = contacts.size+1
         }

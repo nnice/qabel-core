@@ -4,6 +4,7 @@ import de.qabel.core.config.Contact
 import de.qabel.core.config.Identity
 import de.qabel.core.crypto.QblECKeyPair
 import de.qabel.core.crypto.QblECPublicKey
+import de.qabel.core.repository.exception.EntityExistsException
 import de.qabel.core.repository.exception.EntityNotFoundException
 import de.qabel.core.repository.inmemory.InMemoryContactRepository
 import org.hamcrest.Matchers.hasSize
@@ -30,7 +31,7 @@ class InMemoryContactRepositoryTest {
         assertThat(result.contacts, hasSize(1))
     }
 
-    @Test(expected = EntityNotFoundException::class)
+    @Test(expected = EntityExistsException::class)
     fun saveDuplicateContactThrowsException() {
         val identityKey = QblECKeyPair()
         val identityName = "Identity"
