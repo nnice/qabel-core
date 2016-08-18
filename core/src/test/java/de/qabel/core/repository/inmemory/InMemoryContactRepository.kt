@@ -6,6 +6,7 @@ import de.qabel.core.config.Identity
 import de.qabel.core.repository.ContactRepository
 import de.qabel.core.repository.exception.EntityExistsException
 import de.qabel.core.repository.exception.EntityNotFoundException
+import de.qabel.core.repository.exception.PersistenceException
 import de.qabel.core.util.DefaultHashMap
 import java.util.*
 
@@ -39,6 +40,9 @@ class InMemoryContactRepository : ContactRepository {
     }
 
     override fun delete(contact: Contact, identity: Identity) {
+        if (!exists(contact)) {
+            throw EntityNotFoundException("Contact not found!")
+        }
         contacts.remove(contact.keyIdentifier)
         identityMapping.getOrDefault(identity.keyIdentifier).remove(contact.keyIdentifier)
     }

@@ -8,6 +8,7 @@ import de.qabel.core.repository.exception.EntityExistsException
 import de.qabel.core.repository.exception.EntityNotFoundException
 import de.qabel.core.repository.inmemory.InMemoryContactRepository
 import org.hamcrest.Matchers.hasSize
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThat
 import org.junit.Test
 
@@ -21,7 +22,7 @@ class InMemoryContactRepositoryTest {
         val identityName = "Identity"
 
         val identity = createIdentity(identityName, identityKey)
-        val contact = createContact()
+        val contact = createContact("Someone")
 
         repo.save(contact, identity)
 
@@ -31,22 +32,48 @@ class InMemoryContactRepositoryTest {
         assertThat(result.contacts, hasSize(1))
     }
 
-    @Test(expected = EntityExistsException::class)
-    fun saveDuplicateContactThrowsException() {
-        val identityKey = QblECKeyPair()
-        val identityName = "Identity"
+    @Test
+    fun deleteOneExisting() {
+        val identity = createIdentity("Identity", QblECKeyPair())
 
-        val identity = createIdentity(identityName, identityKey)
-        val contact = createContact()
+        val contact = createContact("Someone")
+        val contact2 = createContact("Nobody")
+
+        repo.save(contact, identity)
+        repo.save(contact2, identity)
+        assertEquals(2, repo.contacts.size)
+
+        repo.delete(contact2, identity)
+        assertEquals(1, repo.contacts.size)
+    }
+
+    @Test
+    fun deleteOneWhichNotExists() {
+        val identity = createIdentity("Identity", QblECKeyPair())
+        val contact = createContact("Someone")
+        val notExistingContact = createContact("Nobody")
 
         repo.save(contact, identity)
 
-        val contactDuplicate = createContact()
+        try {
+            repo.delete(notExistingContact, identity)
+        } catch (ignored: EntityNotFoundException) {
+            assertEquals(1, repo.contacts.size)
+        }
+    }
+
+    @Test(expected = EntityExistsException::class)
+    fun saveDuplicateContactThrowsException() {
+        val identity = createIdentity("Identity", QblECKeyPair())
+        val contact = createContact("Someone")
+        repo.save(contact, identity)
+
+        val contactDuplicate = createContact("Someone")
         repo.save(contactDuplicate, identity)
     }
 
-    private fun createContact(): Contact {
-        return Contact("Test", emptyList(), QblECPublicKey("test".toByteArray()))
+    private fun createContact(alias: String): Contact {
+        return Contact(alias, emptyList(), QblECPublicKey(alias.toByteArray()))
     }
 
     private fun createIdentity(identityName: String, identityKey: QblECKeyPair): Identity {
